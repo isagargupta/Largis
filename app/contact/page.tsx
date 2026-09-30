@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { ContactForm } from "@/components/ContactForm";
+import { SocialIcon } from "@/components/SocialIcon";
 import { Eyebrow } from "@/components/ui/card";
-import { serviceInterests, siteConfig, type ServiceInterest } from "@/lib/site";
+import { serviceInterests, siteConfig, socialLinks, type ServiceInterest } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Schedule a Consultation",
@@ -24,6 +25,28 @@ export default function ContactPage({ searchParams }: { searchParams: { interest
     },
     { title: "Address", body: <address className="not-italic">{siteConfig.address}</address> },
     { title: "Response time", body: siteConfig.responseSla },
+    {
+      title: "Follow us",
+      body: (
+        <ul className="space-y-2.5">
+          {socialLinks.map((s) => (
+            <li key={s.href}>
+              <a
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 text-ink hover:text-brand-600"
+              >
+                <SocialIcon icon={s.icon} className="h-4 w-4 text-brand-600" />
+                <span>
+                  {s.label} <span className="text-ink-subtle">· {s.handle}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ),
+    },
   ];
 
   return (

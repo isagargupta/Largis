@@ -13,6 +13,18 @@ export const siteConfig = {
 
 export type MenuLink = { label: string; href: string };
 
+export type SocialLink = { label: string; handle: string; href: string; icon: "linkedin" | "reddit" };
+
+export const socialLinks: SocialLink[] = [
+  {
+    label: "LinkedIn",
+    handle: "Largis Venture",
+    href: "https://www.linkedin.com/company/largisventure",
+    icon: "linkedin",
+  },
+  { label: "Reddit", handle: "r/LargisVenture", href: "https://www.reddit.com/r/LargisVenture", icon: "reddit" },
+];
+
 export type MegaMenu = {
   label: string;
   href: string;

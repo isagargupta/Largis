@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { legalNav, siteConfig } from "@/lib/site";
+import { SocialIcon } from "@/components/SocialIcon";
+import { legalNav, siteConfig, socialLinks } from "@/lib/site";
 
 const columns = [
   {
@@ -46,6 +47,21 @@ export function Footer() {
             >
               {siteConfig.email}
             </a>
+            <ul className="mt-6 flex gap-3">
+              {socialLinks.map((s) => (
+                <li key={s.href}>
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Largis Venture on ${s.label}`}
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white"
+                  >
+                    <SocialIcon icon={s.icon} className="h-[18px] w-[18px]" />
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <nav aria-label="Footer" className="grid gap-10 sm:grid-cols-3 lg:col-span-8">
