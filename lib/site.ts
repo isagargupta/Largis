@@ -9,6 +9,8 @@ export const siteConfig = {
   cin: "U85499KA2024PTC187740",
   gstin: "29AANCR5772Q1Z6",
   responseSla: "Enterprise inquiries are reviewed within 2–4 business hours.",
+  /** Cal.com booking path, e.g. "largis/consultation". Booking UI is hidden when unset. */
+  calLink: process.env.NEXT_PUBLIC_CAL_LINK || null,
 } as const;
 
 export type MenuLink = { label: string; href: string };

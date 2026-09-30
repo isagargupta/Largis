@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { BookCallButton } from "@/components/booking/Booking";
 import { ContactForm } from "@/components/ContactForm";
 import { SocialIcon } from "@/components/SocialIcon";
 import { Eyebrow } from "@/components/ui/card";
@@ -80,7 +81,16 @@ export default function ContactPage({ searchParams }: { searchParams: { interest
             <ContactForm defaultInterest={defaultInterest} />
           </div>
 
-          <aside className="lg:col-span-4 lg:col-start-9">
+          <aside className="space-y-6 lg:col-span-4 lg:col-start-9">
+            {siteConfig.calLink && (
+              <div className="rule-accent border-x border-b border-line bg-white p-8">
+                <h2 className="text-xl font-semibold tracking-[-0.02em]">Prefer to talk first?</h2>
+                <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">
+                  Book a 30-minute call at a time that suits you. You will get a calendar invite with a video link.
+                </p>
+                <BookCallButton className="mt-6 w-full" />
+              </div>
+            )}
             <div className="bg-paper-soft p-8">
               <h2 className="text-xl font-semibold tracking-[-0.02em]">Contact details</h2>
               <dl className="mt-6">

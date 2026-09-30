@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { AlertCircle, CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
+import { BookingCalendar } from "@/components/booking/Booking";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/field";
 import { serviceInterests, siteConfig, type ServiceInterest } from "@/lib/site";
-import { contactSchema, type ContactFieldErrors } from "@/lib/validations/contact";
+import { contactSchema, type ContactFieldErrors, type ContactInput } from "@/lib/validations/contact";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -14,6 +15,7 @@ export function ContactForm({ defaultInterest }: { defaultInterest?: ServiceInte
   const [status, setStatus] = useState<Status>("idle");
   const [errors, setErrors] = useState<ContactFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<ContactInput | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,6 +53,7 @@ export function ContactForm({ defaultInterest }: { defaultInterest?: ServiceInte
         return;
       }
 
+      setSubmitted(parsed.data);
       form.reset();
       setStatus("success");
     } catch {
@@ -67,6 +70,23 @@ export function ContactForm({ defaultInterest }: { defaultInterest?: ServiceInte
         <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-ink-muted">
           {siteConfig.responseSla} We will reply to the email address you provided.
         </p>
+
+        {siteConfig.calLink && submitted && (
+          <div className="mt-10">
+            <h3 className="text-xl font-semibold tracking-[-0.02em]">Want to speak sooner? Pick a time.</h3>
+            <p className="mt-2 text-[15px] text-ink-muted">
+              Choose a slot for a 30-minute call. You will get a calendar invite with a video link.
+            </p>
+            <div className="mt-6">
+              <BookingCalendar
+                name={submitted.name}
+                email={submitted.email}
+                notes={`${submitted.company} · ${submitted.interest}\n\n${submitted.message}`}
+              />
+            </div>
+          </div>
+        )}
+
         <Button variant="outline" className="mt-8" onClick={() => setStatus("idle")}>
           Send another message
         </Button>
