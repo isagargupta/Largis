@@ -15,7 +15,7 @@ export function PageHero({
   image?: string;
 }) {
   return (
-    <section className="bg-white">
+    <section className="bg-paper">
       <div className="container pb-14 pt-10 sm:pb-20">
         <nav aria-label="Breadcrumb">
           <ol className="flex items-center gap-1.5 text-sm text-ink-subtle">

@@ -39,7 +39,7 @@ export function OrgSwitcher({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 border border-[#c8c8c8] bg-white px-4 py-2 text-left transition-colors hover:border-ink-subtle sm:w-auto sm:min-w-[250px]"
+        className="flex w-full items-center gap-3 border border-[#d6d0c4] bg-white px-4 py-2 text-left transition-colors hover:border-ink-subtle sm:w-auto sm:min-w-[250px]"
       >
         <span className="min-w-0 flex-1">
           <span className="block text-xs text-ink-subtle">Active organisation</span>

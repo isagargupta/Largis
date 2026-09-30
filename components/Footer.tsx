@@ -43,7 +43,7 @@ export function Footer() {
             </address>
             <a
               href={`mailto:${siteConfig.email}`}
-              className="mt-3 inline-block text-sm text-brand-300 underline-offset-4 hover:text-brand-200 hover:underline"
+              className="mt-3 inline-block text-sm text-gold-300 underline-offset-4 hover:text-gold-200 hover:underline"
             >
               {siteConfig.email}
             </a>

@@ -50,7 +50,7 @@ export default function ContactPage({ searchParams }: { searchParams: { interest
   ];
 
   return (
-    <section className="bg-white">
+    <section className="bg-paper">
       <div className="container pb-24 pt-10 sm:pb-28">
         <nav aria-label="Breadcrumb">
           <ol className="flex items-center gap-1.5 text-sm text-ink-subtle">

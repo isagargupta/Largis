@@ -69,7 +69,7 @@ export default function SecurityPage() {
         <section
           key={control.id}
           id={control.id}
-          className={i % 2 === 0 ? "scroll-mt-20 bg-white" : "scroll-mt-20 bg-paper-soft"}
+          className={i % 2 === 0 ? "scroll-mt-20 bg-paper" : "scroll-mt-20 bg-paper-soft"}
         >
           <div className="container grid gap-10 py-20 sm:py-24 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-5">
@@ -90,7 +90,7 @@ export default function SecurityPage() {
         </section>
       ))}
 
-      <section className="bg-white">
+      <section className="bg-paper">
         <div className="container py-24 sm:py-28">
           <SectionHeading
             index="05"

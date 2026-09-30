@@ -79,7 +79,7 @@ export function Navbar() {
                     onClick={() => setActive(open ? null : i)}
                     className={cn(
                       "flex h-full items-center gap-1.5 border-b-2 pt-0.5 text-sm font-medium transition-colors",
-                      open ? "border-brand-400 text-white" : "border-transparent text-white/75 hover:text-white",
+                      open ? "border-gold-400 text-white" : "border-transparent text-white/75 hover:text-white",
                       current && !open && "text-white",
                     )}
                   >
@@ -115,7 +115,7 @@ export function Navbar() {
         {menu && (
           <div
             id="mega-menu"
-            className="absolute inset-x-0 top-full hidden animate-menu-in border-b border-line bg-white text-ink shadow-[0_24px_48px_-24px_rgba(10,22,40,0.35)] xl:block"
+            className="absolute inset-x-0 top-full hidden animate-menu-in border-b border-line bg-paper text-ink shadow-[0_24px_48px_-24px_rgba(0,0,0,0.35)] xl:block"
           >
             <div className="container grid grid-cols-12 gap-10 py-12">
               <div className="col-span-3">

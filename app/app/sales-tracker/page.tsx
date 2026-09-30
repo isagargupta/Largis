@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function SalesTrackerPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-paper">
       <div className="container pb-24 pt-10">
         <nav aria-label="Breadcrumb">
           <ol className="flex items-center gap-1.5 text-sm text-ink-subtle">

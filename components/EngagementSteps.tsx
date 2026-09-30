@@ -21,7 +21,7 @@ const steps = [
 
 export function EngagementSteps({ id, index }: { id?: string; index?: string }) {
   return (
-    <section id={id} className="scroll-mt-20 bg-white">
+    <section id={id} className="scroll-mt-20 bg-paper">
       <div className="container py-24 sm:py-28">
         <SectionHeading
           index={index}
@@ -32,7 +32,7 @@ export function EngagementSteps({ id, index }: { id?: string; index?: string }) 
         <ol className="mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {steps.map((step, i) => (
             <li key={step.title} className="rule-accent pt-6">
-              <p className="font-mono text-sm text-brand-700">Step {String(i + 1).padStart(2, "0")}</p>
+              <p className="font-mono text-sm text-gold-700">Step {String(i + 1).padStart(2, "0")}</p>
               <h3 className="mt-4 text-xl font-semibold tracking-[-0.02em]">{step.title}</h3>
               <p className="mt-3 text-[15px] leading-relaxed text-ink-muted">{step.text}</p>
             </li>

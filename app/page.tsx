@@ -59,7 +59,7 @@ const security = [
 export default function HomePage() {
   return (
     <>
-      <section className="bg-white">
+      <section className="bg-paper">
         <div className="container pb-16 pt-16 sm:pb-20 sm:pt-24">
           <Eyebrow>Backend systems · Support operations · Software</Eyebrow>
           <h1 className="display-1 mt-8 max-w-5xl">
@@ -98,7 +98,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section aria-label="Commitments" className="bg-white">
+      <section aria-label="Commitments" className="bg-paper">
         <div className="container grid gap-10 py-20 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {facts.map((fact) => (
             <div key={fact.value} className="rule-accent pt-6">
@@ -122,10 +122,10 @@ export default function HomePage() {
               <Link
                 key={service.title}
                 href={service.href}
-                className="group relative flex flex-col border border-line bg-white transition-colors hover:border-brand-300"
+                className="group relative flex flex-col border border-line bg-white transition-colors hover:border-gold-300"
               >
                 <span
-                  className="absolute inset-x-0 top-0 z-10 h-[3px] origin-left scale-x-0 bg-brand-600 transition-transform duration-300 group-hover:scale-x-100"
+                  className="absolute inset-x-0 top-0 z-10 h-[3px] origin-left scale-x-0 bg-gold-500 transition-transform duration-300 group-hover:scale-x-100"
                   aria-hidden="true"
                 />
                 <div className="relative aspect-[4/3] overflow-hidden">
@@ -169,7 +169,7 @@ export default function HomePage() {
             <ul className="mt-10 border-t border-line">
               {softwarePoints.map((point) => (
                 <li key={point} className="flex items-center gap-3 border-b border-line py-4 text-[15px]">
-                  <span className="h-1.5 w-1.5 shrink-0 bg-brand-600" aria-hidden="true" />
+                  <span className="h-1.5 w-1.5 shrink-0 bg-gold-500" aria-hidden="true" />
                   {point}
                 </li>
               ))}
@@ -185,7 +185,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="security" className="scroll-mt-20 bg-white">
+      <section id="security" className="scroll-mt-20 bg-paper">
         <div className="container py-24 sm:py-28">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <SectionHeading

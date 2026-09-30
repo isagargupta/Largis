@@ -72,7 +72,7 @@ export default function SoftwarePage() {
         </div>
       </section>
 
-      <section id="portal" className="scroll-mt-20 bg-white">
+      <section id="portal" className="scroll-mt-20 bg-paper">
         <div className="container py-24 sm:py-28">
           <SectionHeading
             index="02"

@@ -14,7 +14,7 @@ export function CtaBand({
     <section className="relative isolate overflow-hidden bg-gradient-to-b from-black to-night-700 text-white">
       <div className="absolute inset-0 -z-10 bg-grid-navy bg-[length:48px_48px]" aria-hidden="true" />
       <div
-        className="absolute -right-24 top-1/2 -z-10 h-[420px] w-[420px] -translate-y-1/2 rounded-full bg-brand-600/25 blur-[110px]"
+        className="absolute -right-24 top-1/2 -z-10 h-[420px] w-[420px] -translate-y-1/2 rounded-full bg-gold-500/15 blur-[120px]"
         aria-hidden="true"
       />
       <div className="container grid gap-12 py-24 sm:py-28 lg:grid-cols-12 lg:items-end">

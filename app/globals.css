@@ -17,7 +17,7 @@
   }
 
   ::selection {
-    @apply bg-brand-100 text-ink;
+    @apply bg-gold-100 text-ink;
   }
 }
 
@@ -30,13 +30,13 @@
     @apply text-3xl font-normal leading-[1.12] tracking-[-0.03em] sm:text-[2.75rem];
   }
 
-  /* Thin rule with a short cobalt lead segment — the Largis divider. */
+  /* Thin rule with a short gold lead segment — the Largis divider. */
   .rule-accent {
     @apply relative border-t border-line;
   }
   .rule-accent::before {
     content: "";
-    @apply absolute -top-px left-0 h-[2px] w-10 bg-brand-600 transition-all duration-300;
+    @apply absolute -top-px left-0 h-[2px] w-10 bg-gold-500 transition-all duration-300;
   }
 
   /* L-shaped corner brackets drawn from the logo mark. */
@@ -46,7 +46,7 @@
   .bracket::before,
   .bracket::after {
     content: "";
-    @apply pointer-events-none absolute z-10 h-7 w-7 border-brand-600;
+    @apply pointer-events-none absolute z-10 h-7 w-7 border-gold-500;
   }
   .bracket::before {
     @apply -left-3 -top-3 border-l-2 border-t-2;

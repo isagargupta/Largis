@@ -40,7 +40,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 const selectClass =
-  "border border-[#c8c8c8] bg-white px-3 py-2 text-sm text-ink focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
+  "border border-[#d6d0c4] bg-white px-3 py-2 text-sm text-ink focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
 
 function Delta({ value, invert = false }: { value: number; invert?: boolean }) {
   const good = invert ? value < 0 : value > 0;

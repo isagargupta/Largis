@@ -43,7 +43,7 @@ export default function CompanyPage() {
         image="/images/team-meeting.jpg"
       />
 
-      <section className="bg-white">
+      <section className="bg-paper">
         <div className="container py-24 sm:py-28">
           <SectionHeading index="01" eyebrow="Principles" title="How we work" />
           <div className="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">

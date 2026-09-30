@@ -12,7 +12,7 @@ const rows = [
 export function SoftwarePreview() {
   return (
     <div className="border border-line bg-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.25)]" aria-hidden="true">
-      <div className="flex items-center justify-between bg-navy px-6 py-3 text-white">
+      <div className="flex items-center justify-between bg-night px-6 py-3 text-white">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-2 text-[15px] font-bold tracking-[-0.02em]">
             <LogoMark className="h-5 w-5" />
@@ -42,7 +42,11 @@ export function SoftwarePreview() {
       <div className="px-6 pt-6">
         <div className="flex h-32 items-end gap-1.5">
           {bars.map((h, i) => (
-            <div key={i} className="flex-1 bg-brand-500/85" style={{ height: `${h}%` }} />
+            <div
+              key={i}
+              className={i === bars.length - 1 ? "flex-1 bg-gold-500" : "flex-1 bg-gradient-to-t from-brand-700 to-brand-500"}
+              style={{ height: `${h}%` }}
+            />
           ))}
         </div>
         <div className="mt-2 flex justify-between text-[11px] text-ink-subtle">

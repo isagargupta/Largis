@@ -25,8 +25,8 @@ export function Eyebrow({
         className,
       )}
     >
-      <span className="h-2 w-2 bg-brand-500" aria-hidden="true" />
-      {index && <span className={tone === "dark" ? "text-brand-700" : "text-brand-300"}>{index}</span>}
+      <span className={cn("h-2 w-2", tone === "dark" ? "bg-gold-500" : "bg-gold-400")} aria-hidden="true" />
+      {index && <span className={tone === "dark" ? "text-gold-700" : "text-gold-300"}>{index}</span>}
       {index && <span aria-hidden="true">/</span>}
       <span>{children}</span>
     </p>

@@ -24,7 +24,7 @@ export function ServiceDetail({
   tone?: "white" | "soft";
 }) {
   return (
-    <section id={id} className={cn("scroll-mt-20", tone === "soft" ? "bg-paper-soft" : "bg-white")}>
+    <section id={id} className={cn("scroll-mt-20", tone === "soft" ? "bg-paper-soft" : "bg-paper")}>
       <div className="container py-24 sm:py-28">
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-5">
@@ -53,7 +53,7 @@ export function ServiceDetail({
             <ul className="mt-6 border-t border-line">
               {commitments.map((c) => (
                 <li key={c} className="flex items-center gap-3 border-b border-line py-4 text-[15px]">
-                  <span className="h-1.5 w-1.5 shrink-0 bg-brand-600" aria-hidden="true" />
+                  <span className="h-1.5 w-1.5 shrink-0 bg-gold-500" aria-hidden="true" />
                   {c}
                 </li>
               ))}

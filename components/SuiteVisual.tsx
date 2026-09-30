@@ -30,13 +30,13 @@ export function SuiteVisual({ compact = false, className }: { compact?: boolean;
     <div
       aria-hidden="true"
       className={cn(
-        "absolute inset-0 bg-gradient-to-br from-brand-100 via-brand-50 to-white",
+        "absolute inset-0 bg-gradient-to-br from-brand-100 via-paper-soft to-gold-50",
         compact ? "p-3" : "p-5 sm:p-6",
         className,
       )}
     >
-      <div className="flex h-full flex-col overflow-hidden border border-black/10 bg-white text-ink shadow-[0_18px_40px_-20px_rgba(28,53,95,0.45)]">
-        <div className="flex h-8 shrink-0 items-center justify-between bg-navy px-3 text-white">
+      <div className="flex h-full flex-col overflow-hidden border border-black/10 bg-white text-ink shadow-[0_18px_40px_-20px_rgba(20,18,12,0.35)]">
+        <div className="flex h-8 shrink-0 items-center justify-between bg-night px-3 text-white">
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-[12px] font-bold tracking-[-0.02em]">
               <LogoMark className="h-3.5 w-3.5" />
@@ -66,11 +66,11 @@ export function SuiteVisual({ compact = false, className }: { compact?: boolean;
             </div>
             <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="mt-1 min-h-0 w-full flex-1">
               {[25, 50, 75].map((y) => (
-                <line key={y} x1="0" x2="300" y1={y} y2={y} stroke="#ececec" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                <line key={y} x1="0" x2="300" y1={y} y2={y} stroke="#eeeae1" strokeWidth="1" vectorEffect="non-scaling-stroke" />
               ))}
-              <path d={area} fill="#3a73c9" fillOpacity="0.14" />
-              <path d={line} fill="none" stroke="#2a5db0" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-              <circle cx={last[0]} cy={last[1]} r="3.5" fill="#2a5db0" vectorEffect="non-scaling-stroke" />
+              <path d={area} fill="#2f438e" fillOpacity="0.1" />
+              <path d={line} fill="none" stroke="#2f438e" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              <circle cx={last[0]} cy={last[1]} r="3.5" fill="#b48e4d" vectorEffect="non-scaling-stroke" />
             </svg>
           </div>
 

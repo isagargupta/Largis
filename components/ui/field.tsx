@@ -7,7 +7,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const control =
-  "w-full rounded-none border border-[#c8c8c8] bg-white px-4 py-3 text-[15px] text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:bg-paper-soft disabled:opacity-70 aria-[invalid=true]:border-red-600";
+  "w-full rounded-none border border-[#d6d0c4] bg-white px-4 py-3 text-[15px] text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 disabled:bg-paper-soft disabled:opacity-70 aria-[invalid=true]:border-red-600";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => <input ref={ref} className={cn(control, className)} {...props} />,
