@@ -32,7 +32,7 @@ const columns = [
 
 export function Footer() {
   return (
-    <footer className="overflow-hidden border-t border-white/10 bg-navy text-white">
+    <footer className="overflow-hidden border-t border-white/10 bg-gradient-to-b from-night-700 via-night to-black text-white">
       <div className="container pt-16">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-4">

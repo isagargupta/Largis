@@ -29,6 +29,11 @@ const config: Config = {
           800: "#101f38",
           700: "#182a48",
         },
+        night: {
+          DEFAULT: "#0b0b0d",
+          800: "#141417",
+          700: "#1d1d21",
+        },
         brand: {
           50: "#eef1ff",
           100: "#dfe5ff",

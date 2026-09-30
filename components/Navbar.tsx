@@ -59,7 +59,7 @@ export function Navbar() {
 
   return (
     <>
-      <header ref={headerRef} className="sticky top-0 z-50 bg-navy text-white">
+      <header ref={headerRef} className="sticky top-0 z-50 bg-gradient-to-b from-night-700 to-night text-white">
         <nav className="container flex h-[72px] items-center justify-between gap-8" aria-label="Primary">
           <Logo />
 
@@ -176,7 +176,7 @@ export function Navbar() {
 
       {menu && (
         <div
-          className="fixed inset-0 top-[72px] z-40 hidden bg-navy/40 xl:block"
+          className="fixed inset-0 top-[72px] z-40 hidden bg-black/40 xl:block"
           aria-hidden="true"
           onClick={() => setActive(null)}
         />
@@ -185,7 +185,7 @@ export function Navbar() {
       <div
         id="mobile-nav"
         hidden={!mobileOpen}
-        className="fixed inset-x-0 bottom-0 top-[72px] z-40 overflow-y-auto border-t border-white/10 bg-navy text-white xl:hidden"
+        className="fixed inset-x-0 bottom-0 top-[72px] z-40 overflow-y-auto border-t border-white/10 bg-gradient-to-b from-night to-black text-white xl:hidden"
       >
         <div className="container flex min-h-full flex-col pb-10 pt-4">
           <ul>
