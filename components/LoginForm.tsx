@@ -6,9 +6,10 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { siteConfig } from "@/lib/site";
 
-const supabaseEnabled = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const supabaseEnabled = isSupabaseConfigured();
 
 export function LoginForm() {
   const router = useRouter();
