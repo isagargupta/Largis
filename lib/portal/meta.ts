@@ -1,4 +1,17 @@
-import type { EnquiryStatus, LeadStage, OrgRole, OrgStatus, StaffRole } from "@/lib/supabase/types";
+import type {
+  EngagementStatus,
+  EnquiryStatus,
+  LeadStage,
+  MilestoneStatus,
+  OrgRole,
+  OrgStatus,
+  ReportStatus,
+  ServiceLine,
+  StaffRole,
+  TicketChannel,
+  TicketPriority,
+  TicketStatus,
+} from "@/lib/supabase/types";
 
 export type Tone = "neutral" | "info" | "brand" | "warning" | "success" | "danger";
 
@@ -112,9 +125,9 @@ export const staffRoleLabel: Record<StaffRole, string> = {
 };
 
 export const staffRoleScope: Record<StaffRole, string> = {
-  admin: "All clients and enquiries, plus the staff team",
-  manager: "All clients and enquiries",
-  agent: "All clients and enquiries",
+  admin: "All clients, support, delivery, and enquiries, plus the staff team",
+  manager: "All clients, support, delivery, and enquiries",
+  agent: "All clients, support, delivery, and enquiries",
 };
 
 export const enquiryStatuses: EnquiryStatus[] = ["new", "in_progress", "closed"];
@@ -131,6 +144,75 @@ export const orgStatusMeta: Record<OrgStatus, { label: string; tone: Tone }> = {
   active: { label: "Active", tone: "success" },
   onboarding: { label: "Onboarding", tone: "info" },
   paused: { label: "Paused", tone: "neutral" },
+};
+
+export const ticketStatuses: TicketStatus[] = ["open", "pending_client", "in_progress", "resolved", "closed"];
+export const activeTicketStatuses: TicketStatus[] = ["open", "pending_client", "in_progress"];
+
+export const ticketStatusMeta: Record<TicketStatus, { label: string; clientLabel: string; tone: Tone }> = {
+  open: { label: "Open", clientLabel: "Open", tone: "brand" },
+  pending_client: { label: "Awaiting client", clientLabel: "Awaiting your reply", tone: "warning" },
+  in_progress: { label: "In progress", clientLabel: "In progress", tone: "info" },
+  resolved: { label: "Resolved", clientLabel: "Resolved", tone: "success" },
+  closed: { label: "Closed", clientLabel: "Closed", tone: "neutral" },
+};
+
+export const ticketPriorities: TicketPriority[] = ["urgent", "high", "normal", "low"];
+
+export const ticketPriorityMeta: Record<TicketPriority, { label: string; tone: Tone }> = {
+  urgent: { label: "Urgent", tone: "danger" },
+  high: { label: "High", tone: "warning" },
+  normal: { label: "Normal", tone: "neutral" },
+  low: { label: "Low", tone: "neutral" },
+};
+
+export const ticketChannels: TicketChannel[] = ["portal", "email", "chat", "phone"];
+
+export const ticketChannelLabel: Record<TicketChannel, string> = {
+  portal: "Client portal",
+  email: "Email",
+  chat: "Chat",
+  phone: "Phone",
+};
+
+/** Mirrors the global defaults in public.sla_targets() (minutes). */
+export const defaultSla: Record<TicketPriority, { firstResponse: number; resolution: number }> = {
+  urgent: { firstResponse: 15, resolution: 240 },
+  high: { firstResponse: 60, resolution: 480 },
+  normal: { firstResponse: 240, resolution: 1440 },
+  low: { firstResponse: 480, resolution: 2880 },
+};
+
+export const engagementStatuses: EngagementStatus[] = ["planning", "active", "on_hold", "completed"];
+
+export const engagementStatusMeta: Record<EngagementStatus, { label: string; tone: Tone }> = {
+  planning: { label: "Planning", tone: "info" },
+  active: { label: "Active", tone: "success" },
+  on_hold: { label: "On hold", tone: "warning" },
+  completed: { label: "Completed", tone: "neutral" },
+};
+
+export const serviceLines: ServiceLine[] = ["backend", "support", "software", "other"];
+
+export const serviceLineLabel: Record<ServiceLine, string> = {
+  backend: "Backend & wholesale systems",
+  support: "Customer support operations",
+  software: "Software Suite",
+  other: "Other",
+};
+
+export const milestoneStatuses: MilestoneStatus[] = ["pending", "in_progress", "blocked", "done"];
+
+export const milestoneStatusMeta: Record<MilestoneStatus, { label: string; tone: Tone }> = {
+  pending: { label: "Pending", tone: "neutral" },
+  in_progress: { label: "In progress", tone: "info" },
+  blocked: { label: "Blocked", tone: "danger" },
+  done: { label: "Done", tone: "success" },
+};
+
+export const reportStatusMeta: Record<ReportStatus, { label: string; tone: Tone }> = {
+  draft: { label: "Draft", tone: "neutral" },
+  published: { label: "Published", tone: "success" },
 };
 
 export const planOptions = ["Growth", "Enterprise", "Custom"] as const;

@@ -1,5 +1,12 @@
-import { rolePermissions, stageMeta, staffRoleLabel } from "@/lib/portal/meta";
-import type { LeadStage, OrgRole, StaffRole } from "@/lib/supabase/types";
+import {
+  engagementStatusMeta,
+  rolePermissions,
+  stageMeta,
+  staffRoleLabel,
+  ticketPriorityMeta,
+  ticketStatusMeta,
+} from "@/lib/portal/meta";
+import type { EngagementStatus, LeadStage, OrgRole, StaffRole, TicketPriority, TicketStatus } from "@/lib/supabase/types";
 
 export type Profile = { id: string; email: string | null; full_name: string | null };
 
@@ -23,6 +30,23 @@ export function formatDate(value: string) {
 
 export function formatDateTime(value: string) {
   return `${dateTimeFormatter.format(new Date(value))} UTC`;
+}
+
+/** Calendar dates stored as `YYYY-MM-DD`; rendered without shifting across time zones. */
+export function formatDay(value: string | null | undefined, fallback = "—") {
+  return value ? dateFormatter.format(new Date(`${value.slice(0, 10)}T00:00:00Z`)) : fallback;
+}
+
+export function formatPeriod(start: string | null, end: string | null) {
+  if (start && end) return `${formatDay(start)} – ${formatDay(end)}`;
+  if (start) return `From ${formatDay(start)}`;
+  if (end) return `Until ${formatDay(end)}`;
+  return null;
+}
+
+/** Today's date in UTC as `YYYY-MM-DD`, for comparing against date columns. */
+export function todayUtc(now = Date.now()) {
+  return new Date(now).toISOString().slice(0, 10);
 }
 
 export function formatCents(cents: number) {
@@ -80,6 +104,46 @@ export function describeActivity(row: ActivityRow) {
       return `updated the enquiry from ${label}`;
     case "staff.updated":
       return `updated staff member ${label}`;
+    case "ticket.created":
+      return `opened ticket ${label}${str(m.subject) ? `: ${str(m.subject)}` : ""}`;
+    case "ticket.status_changed": {
+      const status = str(m.status);
+      return status in ticketStatusMeta
+        ? `marked ${label} as ${ticketStatusMeta[status as TicketStatus].label.toLowerCase()}`
+        : `updated ${label}`;
+    }
+    case "ticket.assigned":
+      return str(m.assignee) ? `assigned ${label} to ${str(m.assignee)}` : `unassigned ${label}`;
+    case "ticket.priority_changed": {
+      const priority = str(m.priority);
+      return priority in ticketPriorityMeta
+        ? `set ${label} to ${ticketPriorityMeta[priority as TicketPriority].label.toLowerCase()} priority`
+        : `changed the priority of ${label}`;
+    }
+    case "sla_policy.updated":
+      return "updated the support SLA targets";
+    case "engagement.created":
+      return `started engagement ${label}`;
+    case "engagement.updated": {
+      const status = str(m.status);
+      return status in engagementStatusMeta
+        ? `updated engagement ${label} (${engagementStatusMeta[status as EngagementStatus].label.toLowerCase()})`
+        : `updated engagement ${label}`;
+    }
+    case "engagement.deleted":
+      return `removed engagement ${label}`;
+    case "milestone.created":
+      return `added milestone ${label}`;
+    case "milestone.completed":
+      return `completed milestone ${label}`;
+    case "milestone.updated":
+      return `updated milestone ${label}`;
+    case "milestone.deleted":
+      return `removed milestone ${label}`;
+    case "report.published":
+      return `published report ${label}`;
+    case "report.unpublished":
+      return `withdrew report ${label}`;
     default:
       return row.action.replace(/[._]/g, " ");
   }

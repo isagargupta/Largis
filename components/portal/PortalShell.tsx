@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   BarChart3,
+  Briefcase,
   Building2,
   Inbox,
   LayoutDashboard,
@@ -27,6 +28,7 @@ const icons = {
   reports: BarChart3,
   enquiries: Inbox,
   clients: Building2,
+  delivery: Briefcase,
 } satisfies Record<string, LucideIcon>;
 
 export type NavItem = {
@@ -208,15 +210,15 @@ export function PortalShell({
 
   if (staff) {
     return (
-      <div className="flex min-h-screen bg-paper">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-night-700 to-night text-white lg:flex">
+      <div className="flex min-h-screen bg-paper print:block print:bg-white">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-night-700 to-night text-white lg:flex print:!hidden">
           <div className="flex h-16 items-center border-b border-white/10 px-5">{brand}</div>
           <div className="h-[2px] w-12 bg-gold-500" aria-hidden="true" />
           <div className="flex-1 overflow-y-auto px-3 py-6">{sidebar}</div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur">
+          <header className="sticky top-0 z-40 border-b border-line bg-white/95 backdrop-blur print:hidden">
             <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
               {menuButton}
               <div className="flex min-w-0 items-center gap-2 lg:hidden">
@@ -239,7 +241,7 @@ export function PortalShell({
             </div>
           )}
 
-          <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">
             {children}
           </main>
         </div>
@@ -248,8 +250,8 @@ export function PortalShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper">
-      <header className="sticky top-0 z-40 bg-gradient-to-b from-night-700 to-night text-white">
+    <div className="flex min-h-screen flex-col bg-paper print:block print:bg-white">
+      <header className="sticky top-0 z-40 bg-gradient-to-b from-night-700 to-night text-white print:hidden">
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
           {menuButton}
           {brand}
@@ -260,18 +262,18 @@ export function PortalShell({
         </div>
       </header>
 
-      <div className="flex flex-1">
-        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-r border-line bg-white px-3 py-6 lg:block">
+      <div className="flex flex-1 print:block">
+        <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 overflow-y-auto border-r border-line bg-white px-3 py-6 lg:block print:!hidden">
           {sidebar}
         </aside>
 
         {open && (
-          <div id="portal-nav" className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-white px-3 py-6 lg:hidden">
+          <div id="portal-nav" className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-white px-3 py-6 lg:hidden print:hidden">
             {sidebar}
           </div>
         )}
 
-        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">
           {children}
         </main>
       </div>

@@ -10,19 +10,12 @@ import { marketingOrigin, portalHref, portalUrl } from "@/lib/portal/hosts";
 import { rolePermissions } from "@/lib/portal/meta";
 import { getClientContext, getProfiles, getStaffMember, requestHost, requireUser } from "@/lib/portal/session";
 import { siteConfig } from "@/lib/site";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: { default: "Client portal", template: `%s | Client portal | ${siteConfig.name}` },
   robots: { index: false, follow: false },
 };
-
-const nav: NavItem[] = [
-  { href: portalHref("/app"), label: "Overview", icon: "overview" },
-  { href: portalHref("/app/sales-tracker"), label: "Sales Tracker", icon: "sales" },
-  { href: portalHref("/app/team"), label: "Team", icon: "team" },
-  { href: portalHref("/app/support"), label: "Support", icon: "support", disabled: true },
-  { href: portalHref("/app/reports"), label: "Reports", icon: "reports", disabled: true },
-];
 
 export default async function ClientPortalLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser("/app");
@@ -33,6 +26,21 @@ export default async function ClientPortalLayout({ children }: { children: React
 
   const active = ctx.active;
   const perms = active ? rolePermissions[active.role] : null;
+  const { count: awaitingReply } = active
+    ? await createClient()
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", active.id)
+        .eq("status", "pending_client")
+    : { count: 0 };
+
+  const nav: NavItem[] = [
+    { href: portalHref("/app"), label: "Overview", icon: "overview" },
+    { href: portalHref("/app/sales-tracker"), label: "Sales Tracker", icon: "sales" },
+    { href: portalHref("/app/support"), label: "Support", icon: "support", count: awaitingReply ?? 0 },
+    { href: portalHref("/app/reports"), label: "Reports", icon: "reports" },
+    { href: portalHref("/app/team"), label: "Team", icon: "team" },
+  ];
   const switcher =
     ctx.orgs.length > 1 && active ? (
       <ActiveOrgSwitcher

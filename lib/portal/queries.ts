@@ -53,6 +53,25 @@ export async function loadTeam(organizationId: string, currentUserId: string, in
   return { members, invitations };
 }
 
+/** Names for people the caller may not have a profile row for; clients see staff by name only. */
+export async function loadPeopleNames(ids: (string | null | undefined)[], staffFallback = "Largis team") {
+  const profiles = await getProfiles(ids);
+  const names = new Map<string, string>();
+  profiles.forEach((p, id) => names.set(id, displayName(p)));
+
+  const missing = Array.from(new Set(ids.filter((id): id is string => Boolean(id) && !names.has(id!))));
+  if (missing.length) {
+    const { data } = await createClient().rpc("staff_names", { p_ids: missing });
+    (data ?? []).forEach((s) => names.set(s.user_id, s.full_name || staffFallback));
+  }
+  return names;
+}
+
+export async function loadStaffOptions() {
+  const directory = await loadStaffDirectory();
+  return directory.filter((s) => s.active).map((s) => ({ id: s.userId, name: s.name }));
+}
+
 const staffRolePriority = { admin: 0, manager: 1, agent: 2 } as const;
 
 export async function loadStaffDirectory() {

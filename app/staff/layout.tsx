@@ -4,7 +4,7 @@ import { PortalShell, type NavItem } from "@/components/portal/PortalShell";
 import { UserMenu } from "@/components/portal/UserMenu";
 import { displayName } from "@/lib/portal/format";
 import { marketingOrigin, portalHref, portalUrl } from "@/lib/portal/hosts";
-import { staffRoleLabel, staffRoleScope } from "@/lib/portal/meta";
+import { activeTicketStatuses, staffRoleLabel, staffRoleScope } from "@/lib/portal/meta";
 import { getProfiles, hasClientMembership, requestHost, requireStaff } from "@/lib/portal/session";
 import { siteConfig } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
@@ -17,15 +17,23 @@ export const metadata: Metadata = {
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const { user, staff } = await requireStaff();
   const host = requestHost();
-  const [profiles, isClient, { count: newEnquiries }] = await Promise.all([
+  const supabase = createClient();
+  const [profiles, isClient, { count: newEnquiries }, { count: unassignedTickets }] = await Promise.all([
     getProfiles([user.id]),
     hasClientMembership(user.id),
-    createClient().from("contact_submissions").select("id", { count: "exact", head: true }).eq("status", "new"),
+    supabase.from("contact_submissions").select("id", { count: "exact", head: true }).eq("status", "new"),
+    supabase
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .in("status", activeTicketStatuses)
+      .is("assigned_to", null),
   ]);
   const profile = profiles.get(user.id);
 
   const nav: NavItem[] = [
     { href: portalHref("/staff"), label: "Dashboard", icon: "overview" },
+    { href: portalHref("/staff/support"), label: "Support", icon: "support", count: unassignedTickets ?? 0 },
+    { href: portalHref("/staff/delivery"), label: "Delivery", icon: "delivery" },
     { href: portalHref("/staff/enquiries"), label: "Enquiries", icon: "enquiries", count: newEnquiries ?? 0 },
     { href: portalHref("/staff/clients"), label: "Clients", icon: "clients" },
     { href: portalHref("/staff/team"), label: "Team", icon: "team" },

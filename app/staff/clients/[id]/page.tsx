@@ -1,18 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronRight, ExternalLink, FileText } from "lucide-react";
 import { ActivityList } from "@/components/portal/ActivityList";
 import { ClientSettingsForm } from "@/components/portal/ClientSettingsForm";
+import { EngagementsManager, type EngagementView } from "@/components/portal/EngagementsManager";
 import { LeadsManager } from "@/components/portal/LeadsManager";
+import { NewReportButton } from "@/components/portal/ReportForms";
+import { NewTicketButton, SlaPolicyForm, type SlaOverrides } from "@/components/portal/SupportForms";
 import { TeamManager } from "@/components/portal/TeamManager";
-import { PageHeader, Panel, Stat, StatGrid } from "@/components/portal/ui";
+import { TicketList, ticketListColumns } from "@/components/portal/TicketViews";
+import { EmptyState, PageHeader, Panel, Stat, StatGrid } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
-import { displayName, formatCents, formatDate } from "@/lib/portal/format";
+import { displayName, formatCents, formatDate, formatDateTime, formatPeriod, todayUtc } from "@/lib/portal/format";
 import { portalHref, portalUrl } from "@/lib/portal/hosts";
-import { openStages, orgStatusMeta, stageOrder, staffPermissions } from "@/lib/portal/meta";
-import { loadTeam } from "@/lib/portal/queries";
+import { openStages, orgStatusMeta, reportStatusMeta, stageOrder, staffPermissions } from "@/lib/portal/meta";
+import { loadStaffOptions, loadTeam } from "@/lib/portal/queries";
 import { getProfiles, getUser, requestHost } from "@/lib/portal/session";
+import { formatPercent } from "@/lib/portal/sla";
+import { loadSupportStats } from "@/lib/portal/support";
 import { createClient } from "@/lib/supabase/server";
 import type { LeadStage, OrgStatus } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
@@ -23,6 +29,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const tabs = [
   { id: "overview", label: "Overview" },
+  { id: "support", label: "Support" },
+  { id: "engagements", label: "Engagements" },
+  { id: "reports", label: "Reports" },
   { id: "team", label: "Members" },
   { id: "leads", label: "Leads" },
   { id: "activity", label: "Activity" },
@@ -106,6 +115,9 @@ export default async function ClientPage({
       </nav>
 
       {tab === "overview" && <Overview org={org} />}
+      {tab === "support" && <Support organizationId={org.id} />}
+      {tab === "engagements" && <Engagements organizationId={org.id} />}
+      {tab === "reports" && <Reports organizationId={org.id} />}
       {tab === "team" && <Members organizationId={org.id} userId={user.id} />}
       {tab === "leads" && (
         <Leads organizationId={org.id} slug={org.slug} userId={user.id} stage={searchParams.stage} />
@@ -158,6 +170,187 @@ async function Overview({
         </Panel>
       </div>
     </div>
+  );
+}
+
+async function Support({ organizationId }: { organizationId: string }) {
+  const now = Date.now();
+  const supabase = createClient();
+  const [{ data, error }, { data: policies }, staff, stats] = await Promise.all([
+    supabase
+      .from("support_tickets")
+      .select(ticketListColumns)
+      .eq("organization_id", organizationId)
+      .order("updated_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("sla_policies")
+      .select("priority, first_response_minutes, resolution_minutes")
+      .eq("organization_id", organizationId),
+    loadStaffOptions(),
+    loadSupportStats(organizationId, now),
+  ]);
+  const staffNames = new Map(staff.map((s) => [s.id, s.name]));
+  const tickets = (data ?? []).map((t) => ({
+    ...t,
+    assigneeName: t.assigned_to ? staffNames.get(t.assigned_to) ?? "Former staff member" : null,
+  }));
+  const overrides: SlaOverrides = Object.fromEntries(
+    (policies ?? []).map((p) => [p.priority, { firstResponse: p.first_response_minutes, resolution: p.resolution_minutes }]),
+  );
+
+  return (
+    <div className="space-y-6">
+      <StatGrid>
+        <Stat label="Open tickets" value={stats.open.toLocaleString("en-US")} hint={`${stats.awaitingClient} awaiting the client`} />
+        <Stat
+          label="SLA breached"
+          value={<span className={stats.breached ? "text-red-700" : undefined}>{stats.breached.toLocaleString("en-US")}</span>}
+          hint={`${stats.atRisk} at risk`}
+        />
+        <Stat label="First responses within SLA" value={formatPercent(stats.recent.firstResponseRate)} hint="Last 30 days" />
+        <Stat label="Resolved within SLA" value={formatPercent(stats.recent.resolutionRate)} hint="Last 30 days" />
+      </StatGrid>
+
+      <Panel
+        title="Tickets"
+        actions={<NewTicketButton organizationId={organizationId} staff={staff} label="Log ticket" />}
+      >
+        {error ? (
+          <p role="alert" className="px-5 py-6 text-sm text-red-800">
+            Tickets could not be loaded. Please refresh the page.
+          </p>
+        ) : (
+          <TicketList
+            tickets={tickets}
+            basePath={portalHref("/staff/support")}
+            now={now}
+            audience="staff"
+            emptyTitle="No tickets yet"
+            emptyText="Tickets this client opens on the portal, or that you log for them, appear here."
+          />
+        )}
+      </Panel>
+
+      <Panel title="SLA targets" bodyClassName="p-4 sm:p-5">
+        <SlaPolicyForm organizationId={organizationId} overrides={overrides} />
+      </Panel>
+    </div>
+  );
+}
+
+async function Engagements({ organizationId }: { organizationId: string }) {
+  const supabase = createClient();
+  const [{ data: engagements, error }, { data: milestones }, staff] = await Promise.all([
+    supabase
+      .from("engagements")
+      .select("id, name, service_line, status, start_date, end_date, owner_staff_id, summary, created_at")
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("milestones")
+      .select("id, engagement_id, title, due_date, status, completed_at, sort_order")
+      .eq("organization_id", organizationId)
+      .order("sort_order")
+      .order("due_date", { nullsFirst: false }),
+    loadStaffOptions(),
+  ]);
+
+  if (error) {
+    return (
+      <p role="alert" className="border-l-2 border-red-600 bg-red-50 px-4 py-3 text-sm text-red-800">
+        Engagements could not be loaded. Please refresh the page.
+      </p>
+    );
+  }
+
+  const owners = await getProfiles((engagements ?? []).map((e) => e.owner_staff_id));
+  const statusOrder = { active: 0, planning: 1, on_hold: 2, completed: 3 } as const;
+  const views: EngagementView[] = (engagements ?? [])
+    .map((e) => ({
+      id: e.id,
+      name: e.name,
+      serviceLine: e.service_line,
+      status: e.status,
+      startDate: e.start_date,
+      endDate: e.end_date,
+      ownerStaffId: e.owner_staff_id,
+      ownerName: e.owner_staff_id ? displayName(owners.get(e.owner_staff_id), "Former staff member") : null,
+      summary: e.summary,
+      milestones: (milestones ?? [])
+        .filter((m) => m.engagement_id === e.id)
+        .map((m) => ({
+          id: m.id,
+          title: m.title,
+          dueDate: m.due_date,
+          status: m.status,
+          completedAt: m.completed_at,
+          sortOrder: m.sort_order,
+        })),
+    }))
+    .sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+
+  return <EngagementsManager organizationId={organizationId} engagements={views} staff={staff} today={todayUtc()} />;
+}
+
+async function Reports({ organizationId }: { organizationId: string }) {
+  const supabase = createClient();
+  const [{ data: reports, error }, { data: engagements }] = await Promise.all([
+    supabase
+      .from("reports")
+      .select("id, title, engagement_id, period_start, period_end, status, published_at, updated_at")
+      .eq("organization_id", organizationId)
+      .order("updated_at", { ascending: false }),
+    supabase.from("engagements").select("id, name").eq("organization_id", organizationId).order("name"),
+  ]);
+  const engagementNames = new Map((engagements ?? []).map((e) => [e.id, e.name]));
+  const rows = reports ?? [];
+
+  return (
+    <Panel
+      title={`${rows.length.toLocaleString("en-US")} ${rows.length === 1 ? "report" : "reports"}`}
+      actions={<NewReportButton organizationId={organizationId} engagements={engagements ?? []} />}
+    >
+      {error ? (
+        <p role="alert" className="px-5 py-6 text-sm text-red-800">
+          Reports could not be loaded. Please refresh the page.
+        </p>
+      ) : rows.length === 0 ? (
+        <EmptyState icon={<FileText className="h-5 w-5" />} title="No reports yet">
+          Draft a report for this client. It stays private to Largis until you publish it.
+        </EmptyState>
+      ) : (
+        <ul className="divide-y divide-line">
+          {rows.map((r) => {
+            const status = reportStatusMeta[r.status];
+            return (
+              <li key={r.id}>
+                <Link
+                  href={portalHref(`/staff/clients/${organizationId}/reports/${r.id}`)}
+                  className="grid gap-2 px-4 py-3.5 hover:bg-paper-soft/70 sm:px-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{r.title}</span>
+                    <span className="block truncate text-xs text-ink-subtle">
+                      {[
+                        formatPeriod(r.period_start, r.period_end),
+                        r.engagement_id ? engagementNames.get(r.engagement_id) : null,
+                        r.published_at ? `Published ${formatDateTime(r.published_at)}` : `Edited ${formatDateTime(r.updated_at)}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </span>
+                  <span>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Panel>
   );
 }
 

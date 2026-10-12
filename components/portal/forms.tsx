@@ -1,10 +1,19 @@
 "use client";
 
-import { forwardRef, useEffect, useId, useRef, useState, type ReactNode, type SelectHTMLAttributes } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Copy, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FieldError, Input, Label, Select } from "@/components/ui/field";
+import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/field";
 import { compactControl } from "@/components/portal/control-styles";
 import type { ActionState } from "@/lib/portal/action-state";
 import { cn } from "@/lib/utils";
@@ -17,16 +26,31 @@ export function SubmitButton({
   variant = "primary",
   size = "md",
   className,
+  name,
+  value,
 }: {
   children: ReactNode;
   pendingLabel?: string;
   variant?: "primary" | "outline" | "dark" | "ghost";
   size?: "sm" | "md" | "lg";
   className?: string;
+  /** Lets one form offer several submit intents; only the clicked button shows its pending label. */
+  name?: string;
+  value?: string;
 }) {
-  const { pending } = useFormStatus();
+  const status = useFormStatus();
+  const pending = status.pending && (!name || status.data?.get(name) === value);
   return (
-    <Button type="submit" variant={variant} size={size} disabled={pending} aria-disabled={pending} className={className}>
+    <Button
+      type="submit"
+      name={name}
+      value={value}
+      variant={variant}
+      size={size}
+      disabled={status.pending}
+      aria-disabled={status.pending}
+      className={className}
+    >
       {pending && <Loader2 className="h-4 w-4 animate-spin" />}
       {pending && pendingLabel ? pendingLabel : children}
     </Button>
@@ -141,6 +165,38 @@ export function Field({
           {...props}
         />
       )}
+      {hint && !error && <p className="mt-1.5 text-xs text-ink-subtle">{hint}</p>}
+      <FieldError id={`${id}-error`} message={error} />
+    </div>
+  );
+}
+
+export function TextareaField({
+  name,
+  label,
+  errors,
+  hint,
+  className,
+  ...props
+}: {
+  name: string;
+  label: string;
+  errors?: Record<string, string>;
+  hint?: ReactNode;
+} & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const id = `${useId()}-${name}`;
+  const error = errors?.[name];
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <Textarea
+        id={id}
+        name={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={className}
+        {...props}
+      />
       {hint && !error && <p className="mt-1.5 text-xs text-ink-subtle">{hint}</p>}
       <FieldError id={`${id}-error`} message={error} />
     </div>

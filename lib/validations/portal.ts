@@ -1,5 +1,17 @@
 import { z } from "zod";
-import { enquiryStatuses, orgRoles, orgStatuses, stageOrder, staffRoles } from "@/lib/portal/meta";
+import {
+  engagementStatuses,
+  enquiryStatuses,
+  milestoneStatuses,
+  orgRoles,
+  orgStatuses,
+  serviceLines,
+  stageOrder,
+  staffRoles,
+  ticketChannels,
+  ticketPriorities,
+  ticketStatuses,
+} from "@/lib/portal/meta";
 
 export const emailField = z
   .string()
@@ -120,6 +132,133 @@ export const staffUpdateSchema = z.object({
   title: optionalText(120),
   active: z.enum(["true", "false"]).transform((v) => v === "true"),
 });
+
+const optionalEmail = blank(
+  z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(254)
+    .refine((v) => v === "" || z.string().email().safeParse(v).success, "Enter a valid email address.")
+    .transform((v) => v || null),
+);
+
+const optionalDate = blank(
+  z
+    .string()
+    .trim()
+    .refine((v) => v === "" || (/^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))), "Enter a valid date.")
+    .transform((v) => v || null),
+);
+
+const optionalMinutes = blank(
+  z
+    .string()
+    .trim()
+    .refine((v) => v === "" || (/^\d{1,6}$/.test(v) && Number(v) >= 1 && Number(v) <= 525600), "Enter whole minutes, 1 or more.")
+    .transform((v) => (v === "" ? null : Number(v))),
+);
+
+const checkbox = z.preprocess((v) => v === "on" || v === "true", z.boolean());
+
+export const ticketCreateSchema = z.object({
+  organizationId: uuid,
+  subject: z.string().trim().min(3, "Enter a short subject.").max(200, "Keep the subject under 200 characters."),
+  description: z.string().trim().min(1, "Describe what you need help with.").max(10000, "Keep this under 10,000 characters."),
+  priority: z.enum(ticketPriorities, { message: "Choose a priority." }),
+  channel: blank(z.union([z.enum(ticketChannels), z.literal("")]).transform((v) => v || "portal")),
+  requesterName: optionalText(120),
+  requesterEmail: optionalEmail,
+  assignedTo: optionalUuid,
+});
+
+export const ticketReplySchema = z.object({
+  ticketId: uuid,
+  body: z.string().trim().min(1, "Write a reply first.").max(10000, "Keep replies under 10,000 characters."),
+  internal: checkbox,
+  nextStatus: blank(z.union([z.enum(ticketStatuses), z.literal("")]).transform((v) => v || null)),
+});
+
+export const ticketUpdateSchema = z.object({
+  id: uuid,
+  status: z.enum(ticketStatuses),
+  priority: z.enum(ticketPriorities),
+  assignedTo: optionalUuid,
+});
+
+export const ticketClientStatusSchema = z.object({ id: uuid, status: z.enum(["resolved", "open"]) });
+
+export const slaPolicySchema = z.object({
+  organizationId: uuid,
+  urgentFirstResponse: optionalMinutes,
+  urgentResolution: optionalMinutes,
+  highFirstResponse: optionalMinutes,
+  highResolution: optionalMinutes,
+  normalFirstResponse: optionalMinutes,
+  normalResolution: optionalMinutes,
+  lowFirstResponse: optionalMinutes,
+  lowResolution: optionalMinutes,
+});
+
+const endAfterStart = (start: string | null, end: string | null) => !start || !end || end >= start;
+
+export const engagementSchema = z
+  .object({
+    id: optionalUuid,
+    organizationId: uuid,
+    name: z.string().trim().min(2, "Name the engagement.").max(160),
+    serviceLine: z.enum(serviceLines, { message: "Choose a service line." }),
+    status: z.enum(engagementStatuses, { message: "Choose a status." }),
+    startDate: optionalDate,
+    endDate: optionalDate,
+    ownerStaffId: optionalUuid,
+    summary: optionalText(5000),
+  })
+  .refine((d) => endAfterStart(d.startDate, d.endDate), { message: "End on or after the start date.", path: ["endDate"] });
+
+export const milestoneSchema = z.object({
+  id: optionalUuid,
+  organizationId: uuid,
+  engagementId: uuid,
+  title: z.string().trim().min(2, "Enter a milestone title.").max(200),
+  dueDate: optionalDate,
+  status: blank(z.union([z.enum(milestoneStatuses), z.literal("")]).transform((v) => v || "pending")),
+  sortOrder: blank(
+    z
+      .string()
+      .trim()
+      .refine((v) => v === "" || /^-?\d{1,4}$/.test(v), "Enter a whole number.")
+      .transform((v) => (v === "" ? null : Number(v))),
+  ),
+});
+
+export const milestoneStatusSchema = z.object({ id: uuid, organizationId: uuid, status: z.enum(milestoneStatuses) });
+
+export const recordRefSchema = z.object({ id: uuid, organizationId: uuid });
+
+export const reportCreateSchema = z
+  .object({
+    organizationId: uuid,
+    title: z.string().trim().min(2, "Give the report a title.").max(200),
+    engagementId: optionalUuid,
+    periodStart: optionalDate,
+    periodEnd: optionalDate,
+  })
+  .refine((d) => endAfterStart(d.periodStart, d.periodEnd), { message: "End on or after the start date.", path: ["periodEnd"] });
+
+export const reportSaveSchema = z
+  .object({
+    id: uuid,
+    organizationId: uuid,
+    title: z.string().trim().min(2, "Give the report a title.").max(200),
+    engagementId: optionalUuid,
+    periodStart: optionalDate,
+    periodEnd: optionalDate,
+    summary: optionalText(2000),
+    body: blank(z.string().max(100000, "Keep the report under 100,000 characters.")),
+    intent: z.enum(["save", "publish", "unpublish"]),
+  })
+  .refine((d) => endAfterStart(d.periodStart, d.periodEnd), { message: "End on or after the start date.", path: ["periodEnd"] });
 
 export function slugify(name: string) {
   return name

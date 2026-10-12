@@ -1,0 +1,89 @@
+import { escapeHtml, layout } from "@/lib/emails/layout";
+import { siteConfig } from "@/lib/site";
+
+function button(href: string, label: string) {
+  return `<p style="margin:0 0 24px;"><a href="${escapeHtml(href)}" style="display:inline-block;background:#2f438e;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;font-size:14px;font-weight:600;">${escapeHtml(label)}</a></p>`;
+}
+
+function eyebrow(text: string) {
+  return `<p style="margin:0 0 6px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#77592f;">${escapeHtml(text)}</p>`;
+}
+
+function excerpt(body: string, max = 1500) {
+  return body.length > max ? `${body.slice(0, max).trimEnd()}…` : body;
+}
+
+export function ticketReplyEmail(i: {
+  reference: string;
+  subject: string;
+  body: string;
+  recipientName?: string | null;
+  agentName?: string | null;
+  link: string;
+}) {
+  const greeting = i.recipientName ? `Hello ${i.recipientName.split(" ")[0]},` : "Hello,";
+  const who = i.agentName ? `${i.agentName} from the Largis support team` : "The Largis support team";
+  const message = excerpt(i.body);
+
+  const html = layout(`
+    ${eyebrow(`Support · ${i.reference}`)}
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;">${escapeHtml(i.subject)}</h1>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">${escapeHtml(greeting)}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4c4f5a;">${escapeHtml(who)} replied to your ticket:</p>
+    <div style="margin:0 0 24px;padding:14px 16px;border-left:2px solid #b48e4d;background:#fbfaf6;font-size:15px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(message)}</div>
+    ${button(i.link, "View the ticket")}
+    <p style="margin:0;font-size:13px;line-height:1.6;color:#7d7f88;">
+      Reply from the client portal so the conversation stays in one place.
+    </p>
+  `);
+
+  const text = [
+    greeting,
+    "",
+    `${who} replied to ${i.reference} (${i.subject}):`,
+    "",
+    message,
+    "",
+    `View the ticket: ${i.link}`,
+    "",
+    `— ${siteConfig.name}`,
+  ].join("\n");
+
+  return { subject: `[${i.reference}] ${i.subject}`, html, text };
+}
+
+export function reportPublishedEmail(i: {
+  title: string;
+  organizationName: string;
+  period?: string | null;
+  summary?: string | null;
+  recipientName?: string | null;
+  link: string;
+}) {
+  const greeting = i.recipientName ? `Hello ${i.recipientName.split(" ")[0]},` : "Hello,";
+  const html = layout(`
+    ${eyebrow("New report")}
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;letter-spacing:-0.02em;">${escapeHtml(i.title)}</h1>
+    ${i.period ? `<p style="margin:0 0 16px;font-size:13px;color:#7d7f88;">${escapeHtml(i.period)}</p>` : ""}
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">${escapeHtml(greeting)}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4c4f5a;">
+      A new report for ${escapeHtml(i.organizationName)} is available on the client portal.
+    </p>
+    ${i.summary ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4c4f5a;">${escapeHtml(excerpt(i.summary, 600))}</p>` : ""}
+    ${button(i.link, "Read the report")}
+    <p style="margin:0;font-size:13px;line-height:1.6;color:#7d7f88;">Questions? Reply to this email or contact ${escapeHtml(siteConfig.email)}.</p>
+  `);
+
+  const text = [
+    greeting,
+    "",
+    `A new report for ${i.organizationName} is available: ${i.title}${i.period ? ` (${i.period})` : ""}.`,
+    ...(i.summary ? ["", excerpt(i.summary, 600)] : []),
+    "",
+    `Read the report: ${i.link}`,
+    "",
+    `— ${siteConfig.name}`,
+  ].join("\n");
+
+  return { subject: `New report: ${i.title}`, html, text };
+}

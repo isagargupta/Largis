@@ -9,23 +9,13 @@ import { Button } from "@/components/ui/button";
 import { displayName, formatDateTime } from "@/lib/portal/format";
 import { portalHref } from "@/lib/portal/hosts";
 import { enquiryStatusMeta, enquiryStatuses } from "@/lib/portal/meta";
+import { cleanQuery } from "@/lib/portal/params";
 import { getProfiles } from "@/lib/portal/session";
 import { createClient } from "@/lib/supabase/server";
 import type { EnquiryStatus } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Enquiries" };
-
-/** Keeps search text safe inside a PostgREST `or=(...)` filter. */
-function cleanQuery(value: unknown) {
-  return typeof value === "string"
-    ? value
-        .replace(/[^\p{L}\p{N}@.\-_' ]/gu, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 80)
-    : "";
-}
 
 export default async function EnquiriesPage({ searchParams }: { searchParams: { status?: string; q?: string } }) {
   const status = enquiryStatuses.includes(searchParams.status as EnquiryStatus)
