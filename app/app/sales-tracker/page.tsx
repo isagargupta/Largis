@@ -3,6 +3,7 @@ import { LeadsManager } from "@/components/portal/LeadsManager";
 import { PageHeader } from "@/components/portal/ui";
 import { displayName } from "@/lib/portal/format";
 import { rolePermissions, stageOrder } from "@/lib/portal/meta";
+import { leadColumns, loadLeadValues } from "@/lib/portal/queries";
 import { getClientContext, getProfiles } from "@/lib/portal/session";
 import { createClient } from "@/lib/supabase/server";
 import type { LeadStage } from "@/lib/supabase/types";
@@ -16,14 +17,10 @@ export default async function SalesTrackerPage({ searchParams }: { searchParams:
 
   const perms = rolePermissions[org.role];
   const supabase = createClient();
-  const [{ data: leads, error }, { data: memberships }] = await Promise.all([
-    supabase
-      .from("leads")
-      .select("id, company, contact_name, contact_email, stage, value_cents, owner_id, source, notes, updated_at")
-      .eq("organization_id", org.id)
-      .order("updated_at", { ascending: false })
-      .limit(2000),
+  const [{ data: leads, error }, { data: memberships }, values] = await Promise.all([
+    supabase.from("leads").select(leadColumns).eq("organization_id", org.id).order("updated_at", { ascending: false }).limit(2000),
     supabase.from("memberships").select("user_id").eq("organization_id", org.id),
+    perms.canViewValue ? loadLeadValues(org.id) : Promise.resolve(new Map<string, number>()),
   ]);
 
   const profiles = await getProfiles((memberships ?? []).map((m) => m.user_id));
@@ -31,7 +28,7 @@ export default async function SalesTrackerPage({ searchParams }: { searchParams:
     .map((m) => ({ id: m.user_id, name: displayName(profiles.get(m.user_id)) }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const rows = (leads ?? []).map((l) => (perms.canViewValue ? l : { ...l, value_cents: 0 }));
+  const rows = (leads ?? []).map((l) => ({ ...l, value_cents: perms.canViewValue ? values.get(l.id) ?? 0 : null }));
   const initialStage = stageOrder.includes(searchParams.stage as LeadStage) ? (searchParams.stage as LeadStage) : "all";
 
   return (

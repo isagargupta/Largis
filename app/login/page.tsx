@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Info, LogOut } from "lucide-react";
-import { LoginForm } from "@/components/LoginForm";
+import { LoginForm, type MfaFactorOption } from "@/components/LoginForm";
 import { Logo } from "@/components/Logo";
 import { marketingOrigin, portalForHost, portalOrigin, safeNextPath } from "@/lib/portal/hosts";
-import { getStaffMember, getUser, hasClientMembership, requestHost } from "@/lib/portal/session";
+import { getMfaState, getStaffMember, getUser, hasClientMembership, requestHost } from "@/lib/portal/session";
 import { siteConfig } from "@/lib/site";
 import { isPortalAuthConfigured } from "@/lib/supabase/env";
 
@@ -39,11 +39,17 @@ export default async function LoginPage({ searchParams }: { searchParams: { emai
 
   const user = await getUser();
   let signedInElsewhere: string | null = null;
+  let mfaFactors: MfaFactorOption[] | undefined;
   if (user) {
-    const [staff, isClient] = await Promise.all([getStaffMember(), hasClientMembership(user.id)]);
+    const [staff, isClient, mfa] = await Promise.all([getStaffMember(), hasClientMembership(user.id), getMfaState()]);
     const allowed = portal === "staff" ? Boolean(staff) : isClient || !staff;
-    if (allowed) redirect(safeNextPath(next) ?? "/");
-    signedInElsewhere = user.email ?? "this account";
+    if (allowed && mfa?.needsChallenge) {
+      mfaFactors = mfa.factors.map((f) => ({ id: f.id, name: f.friendly_name || "Authenticator app" }));
+    } else if (allowed) {
+      redirect(safeNextPath(next) ?? "/");
+    } else {
+      signedInElsewhere = user.email ?? "this account";
+    }
   }
 
   const available = isPortalAuthConfigured();
@@ -82,7 +88,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { emai
 
             <div className="mt-8">
               {available ? (
-                <LoginForm defaultEmail={email} next={next} />
+                <LoginForm defaultEmail={email} next={next} mfaFactors={mfaFactors} />
               ) : (
                 <div role="status" className="flex items-start gap-3 border-l-2 border-gold-500 bg-gold-50 px-4 py-4">
                   <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold-700" />

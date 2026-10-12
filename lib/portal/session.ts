@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { Profile } from "@/lib/portal/format";
 import { portalHref, portalUrl } from "@/lib/portal/hosts";
 import { rolePermissions, staffPermissions, type RolePermissions } from "@/lib/portal/meta";
+import { aalFromAccessToken, verifiedTotpFactors } from "@/lib/portal/mfa";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, OrgRole } from "@/lib/supabase/types";
@@ -23,6 +24,44 @@ export const getUser = cache(async () => {
   const { data } = await createClient().auth.getUser();
   return data.user ?? null;
 });
+
+/** Verified factors and the session's assurance level for the signed-in user. */
+export const getMfaState = cache(async () => {
+  const user = await getUser();
+  if (!user) return null;
+  const {
+    data: { session },
+  } = await createClient().auth.getSession();
+  const factors = verifiedTotpFactors(user);
+  const aal = aalFromAccessToken(session?.access_token);
+  return { user, factors, aal, needsChallenge: factors.length > 0 && aal !== "aal2" };
+});
+
+/** Whether a staff admin has made MFA mandatory for every staff account. */
+export const getStaffMfaRequired = cache(async () => {
+  const { data } = await createClient().from("security_settings").select("require_staff_mfa").maybeSingle();
+  return data?.require_staff_mfa ?? false;
+});
+
+/** Names of the caller's client organizations that require MFA for their members. */
+export const getClientMfaRequirement = cache(async () => {
+  const ctx = await getClientContext();
+  if (!ctx?.orgs.length) return [];
+  const { data } = await createClient()
+    .from("organizations")
+    .select("name")
+    .in(
+      "id",
+      ctx.orgs.map((o) => o.id),
+    )
+    .eq("require_mfa", true);
+  return (data ?? []).map((o) => o.name);
+});
+
+/** The external path of the current portal request, as forwarded by middleware. */
+export function requestPath() {
+  return headers().get("x-largis-path") ?? "";
+}
 
 export async function requireUser(next: string) {
   const user = await getUser();

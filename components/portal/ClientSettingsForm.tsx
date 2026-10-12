@@ -10,7 +10,7 @@ import type { OrgStatus } from "@/lib/supabase/types";
 export function ClientSettingsForm({
   client,
 }: {
-  client: { id: string; name: string; plan: string | null; region: string | null; status: OrgStatus };
+  client: { id: string; name: string; plan: string | null; region: string | null; status: OrgStatus; requireMfa: boolean };
 }) {
   const [state, action] = useFormState(updateClientOrganization, idleState);
   const plans: string[] = client.plan && !(planOptions as readonly string[]).includes(client.plan)
@@ -51,6 +51,15 @@ export function ClientSettingsForm({
           ))}
         </datalist>
       </div>
+      <label className="flex items-start gap-2.5 text-sm">
+        <input type="checkbox" name="requireMfa" defaultChecked={client.requireMfa} className="mt-0.5 h-4 w-4 accent-brand-600" />
+        <span>
+          Require two-step verification for this client&apos;s members
+          <span className="block text-xs text-ink-subtle">
+            Members without an authenticator app are asked to set one up before they can use the portal.
+          </span>
+        </span>
+      </label>
       <SubmitButton pendingLabel="Saving…">Save details</SubmitButton>
     </form>
   );

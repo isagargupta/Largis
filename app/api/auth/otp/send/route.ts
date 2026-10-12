@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { authLimits, clientIp, withinLimit } from "@/lib/portal/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPortalAuthConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 import { otpSendSchema } from "@/lib/validations/portal";
@@ -45,6 +46,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Enter a valid work email address." }, { status: 422 });
   }
   const { email } = parsed.data;
+
+  // Over the limit, respond exactly as for an unknown address so limits reveal nothing about accounts.
+  const [ipOk, emailOk] = await Promise.all([
+    withinLimit(admin, "otp-send-ip", clientIp(request), authLimits.sendPerIp),
+    withinLimit(admin, "otp-send-email", email, authLimits.sendPerEmail),
+  ]);
+  if (!ipOk || !emailOk) return NextResponse.json({ ok: true, message: GENERIC });
 
   try {
     const existing = await hasAccount(admin, email);

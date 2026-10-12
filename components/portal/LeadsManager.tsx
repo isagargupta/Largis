@@ -21,7 +21,8 @@ export type LeadRow = {
   contact_name: string;
   contact_email: string | null;
   stage: LeadStage;
-  value_cents: number;
+  /** Null when the database withholds deal values from the viewer's role. */
+  value_cents: number | null;
   owner_id: string | null;
   source: string | null;
   notes: string | null;
@@ -105,7 +106,7 @@ export function LeadsManager({
         l.contact_name,
         l.contact_email ?? "",
         stageMeta[l.stage].label,
-        ...(perms.canViewValue ? [(l.value_cents / 100).toFixed(2)] : []),
+        ...(perms.canViewValue ? [((l.value_cents ?? 0) / 100).toFixed(2)] : []),
         l.owner_id ? ownerName.get(l.owner_id) ?? "" : "",
         l.source ?? "",
         l.notes ?? "",
@@ -256,7 +257,11 @@ export function LeadsManager({
                         <Badge tone={stageMeta[lead.stage].tone}>{stageMeta[lead.stage].label}</Badge>
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">
-                        {perms.canViewValue ? formatCents(lead.value_cents) : <span className="text-ink-subtle">Hidden</span>}
+                        {perms.canViewValue && lead.value_cents !== null ? (
+                          formatCents(lead.value_cents)
+                        ) : (
+                          <span className="text-ink-subtle">Hidden</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {lead.owner_id ? ownerName.get(lead.owner_id) ?? "Former member" : <span className="text-ink-subtle">Unassigned</span>}
@@ -375,7 +380,7 @@ function LeadForm({
                 label="Deal value (USD)"
                 inputMode="decimal"
                 errors={errors}
-                defaultValue={lead ? String(lead.value_cents / 100) : ""}
+                defaultValue={lead?.value_cents ? String(lead.value_cents / 100) : ""}
                 placeholder="25000"
               />
             )}

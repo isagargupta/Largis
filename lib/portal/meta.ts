@@ -1,5 +1,10 @@
 import type {
+  AuditAction,
+  BillingCycle,
+  ContractStatus,
+  Currency,
   EngagementStatus,
+  InvoiceStatus,
   EnquiryStatus,
   LeadStage,
   MilestoneStatus,
@@ -49,6 +54,7 @@ export type RolePermissions = {
   canAssign: boolean;
   canDelete: boolean;
   canManageTeam: boolean;
+  canViewBilling: boolean;
 };
 
 export const rolePermissions: Record<OrgRole, RolePermissions> = {
@@ -61,6 +67,7 @@ export const rolePermissions: Record<OrgRole, RolePermissions> = {
     canAssign: true,
     canDelete: true,
     canManageTeam: true,
+    canViewBilling: true,
   },
   admin: {
     label: "Admin",
@@ -71,6 +78,7 @@ export const rolePermissions: Record<OrgRole, RolePermissions> = {
     canAssign: true,
     canDelete: true,
     canManageTeam: true,
+    canViewBilling: true,
   },
   manager: {
     label: "Manager",
@@ -81,6 +89,7 @@ export const rolePermissions: Record<OrgRole, RolePermissions> = {
     canAssign: true,
     canDelete: false,
     canManageTeam: false,
+    canViewBilling: true,
   },
   agent: {
     label: "Agent",
@@ -91,6 +100,7 @@ export const rolePermissions: Record<OrgRole, RolePermissions> = {
     canAssign: false,
     canDelete: false,
     canManageTeam: false,
+    canViewBilling: false,
   },
   viewer: {
     label: "Viewer",
@@ -101,6 +111,7 @@ export const rolePermissions: Record<OrgRole, RolePermissions> = {
     canAssign: false,
     canDelete: false,
     canManageTeam: false,
+    canViewBilling: false,
   },
 };
 
@@ -114,6 +125,7 @@ export const staffPermissions: RolePermissions = {
   canAssign: true,
   canDelete: true,
   canManageTeam: true,
+  canViewBilling: true,
 };
 
 export const staffRoles: StaffRole[] = ["admin", "manager", "agent"];
@@ -125,9 +137,9 @@ export const staffRoleLabel: Record<StaffRole, string> = {
 };
 
 export const staffRoleScope: Record<StaffRole, string> = {
-  admin: "All clients, support, delivery, and enquiries, plus the staff team",
-  manager: "All clients, support, delivery, and enquiries",
-  agent: "All clients, support, delivery, and enquiries",
+  admin: "All clients, support, delivery, billing, and enquiries, plus the staff team and audit log",
+  manager: "All clients, support, delivery, billing, and enquiries",
+  agent: "All clients, support, delivery, billing, and enquiries",
 };
 
 export const enquiryStatuses: EnquiryStatus[] = ["new", "in_progress", "closed"];
@@ -214,6 +226,62 @@ export const reportStatusMeta: Record<ReportStatus, { label: string; tone: Tone 
   draft: { label: "Draft", tone: "neutral" },
   published: { label: "Published", tone: "success" },
 };
+
+export const contractStatuses: ContractStatus[] = ["draft", "active", "expired", "terminated"];
+
+export const contractStatusMeta: Record<ContractStatus, { label: string; tone: Tone }> = {
+  draft: { label: "Draft", tone: "neutral" },
+  active: { label: "Active", tone: "success" },
+  expired: { label: "Expired", tone: "warning" },
+  terminated: { label: "Terminated", tone: "danger" },
+};
+
+export const billingCycles: BillingCycle[] = ["monthly", "quarterly", "annual", "one_time"];
+
+export const billingCycleLabel: Record<BillingCycle, string> = {
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  annual: "Annual",
+  one_time: "One-time",
+};
+
+export const currencies: Currency[] = ["INR", "USD", "EUR", "GBP"];
+
+export const invoiceStatuses: InvoiceStatus[] = ["draft", "issued", "overdue", "paid", "void"];
+
+export const invoiceStatusMeta: Record<InvoiceStatus, { label: string; tone: Tone }> = {
+  draft: { label: "Draft", tone: "neutral" },
+  issued: { label: "Issued", tone: "info" },
+  overdue: { label: "Overdue", tone: "danger" },
+  paid: { label: "Paid", tone: "success" },
+  void: { label: "Void", tone: "neutral" },
+};
+
+/** Tables with audit triggers (0007_hardening.sql), labelled for the audit log. */
+export const auditedTables = {
+  organizations: "Clients",
+  memberships: "Client members",
+  invitations: "Invitations",
+  staff_members: "Staff",
+  leads: "Leads",
+  support_tickets: "Support tickets",
+  engagements: "Engagements",
+  reports: "Reports",
+  contracts: "Contracts",
+  invoices: "Invoices",
+  security_settings: "Security settings",
+} as const;
+
+export type AuditedTable = keyof typeof auditedTables;
+
+export const auditActionMeta: Record<AuditAction, { label: string; tone: Tone }> = {
+  insert: { label: "Created", tone: "success" },
+  update: { label: "Updated", tone: "info" },
+  delete: { label: "Deleted", tone: "danger" },
+};
+
+/** Standard Indian GST on services, in basis points. */
+export const defaultTaxRateBps = 1800;
 
 export const planOptions = ["Growth", "Enterprise", "Custom"] as const;
 export const regionSuggestions = ["ap-south-1", "ap-southeast-1", "eu-central-1", "eu-west-2", "us-east-1"] as const;

@@ -12,9 +12,14 @@ export type EngagementStatus = "planning" | "active" | "on_hold" | "completed";
 export type ServiceLine = "backend" | "support" | "software" | "other";
 export type MilestoneStatus = "pending" | "in_progress" | "done" | "blocked";
 export type ReportStatus = "draft" | "published";
+export type ContractStatus = "draft" | "active" | "expired" | "terminated";
+export type BillingCycle = "monthly" | "quarterly" | "annual" | "one_time";
+export type InvoiceStatus = "draft" | "issued" | "paid" | "overdue" | "void";
+export type Currency = "INR" | "USD" | "EUR" | "GBP";
+export type AuditAction = "insert" | "update" | "delete";
 
 type Timestamps = { created_at: string };
-type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   public: {
@@ -27,6 +32,7 @@ export type Database = {
           plan: string | null;
           region: string | null;
           status: OrgStatus;
+          require_mfa: boolean;
         } & Timestamps;
         Insert: {
           id?: string;
@@ -35,8 +41,16 @@ export type Database = {
           plan?: string | null;
           region?: string | null;
           status?: OrgStatus;
+          require_mfa?: boolean;
         };
-        Update: { name?: string; slug?: string; plan?: string | null; region?: string | null; status?: OrgStatus };
+        Update: {
+          name?: string;
+          slug?: string;
+          plan?: string | null;
+          region?: string | null;
+          status?: OrgStatus;
+          require_mfa?: boolean;
+        };
         Relationships: [];
       };
       memberships: {
@@ -46,6 +60,7 @@ export type Database = {
         Relationships: [];
       };
       leads: {
+        /** value_cents is not readable through the API; use the lead_values() function. */
         Row: {
           id: string;
           organization_id: string;
@@ -53,7 +68,6 @@ export type Database = {
           contact_name: string;
           contact_email: string | null;
           stage: LeadStage;
-          value_cents: number;
           owner_id: string | null;
           source: string | null;
           notes: string | null;
@@ -303,6 +317,130 @@ export type Database = {
         Update: Partial<Omit<Database["public"]["Tables"]["reports"]["Insert"], "organization_id">>;
         Relationships: [];
       };
+      contracts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          service_line: ServiceLine;
+          status: ContractStatus;
+          start_date: string | null;
+          end_date: string | null;
+          billing_cycle: BillingCycle;
+          currency: Currency;
+          monthly_value_cents: number;
+          notes: string | null;
+          document_path: string | null;
+          created_by: string | null;
+          updated_at: string;
+        } & Timestamps;
+        Insert: {
+          organization_id: string;
+          title: string;
+          service_line?: ServiceLine;
+          status?: ContractStatus;
+          start_date?: string | null;
+          end_date?: string | null;
+          billing_cycle?: BillingCycle;
+          currency?: Currency;
+          monthly_value_cents?: number;
+          notes?: string | null;
+        };
+        Update: Partial<Omit<Database["public"]["Tables"]["contracts"]["Insert"], "organization_id">> & {
+          document_path?: string | null;
+        };
+        Relationships: [];
+      };
+      invoices: {
+        Row: {
+          id: string;
+          organization_id: string;
+          contract_id: string | null;
+          number: string | null;
+          issue_date: string | null;
+          due_date: string | null;
+          currency: Currency;
+          subtotal_cents: number;
+          tax_rate_bps: number;
+          tax_cents: number;
+          total_cents: number;
+          status: InvoiceStatus;
+          issued_at: string | null;
+          paid_at: string | null;
+          payment_reference: string | null;
+          pdf_path: string | null;
+          bill_to: string | null;
+          notes: string | null;
+          created_by: string | null;
+          updated_at: string;
+        } & Timestamps;
+        Insert: {
+          organization_id: string;
+          contract_id?: string | null;
+          due_date?: string | null;
+          currency?: Currency;
+          tax_rate_bps?: number;
+          bill_to?: string | null;
+          notes?: string | null;
+        };
+        Update: {
+          contract_id?: string | null;
+          due_date?: string | null;
+          currency?: Currency;
+          tax_rate_bps?: number;
+          bill_to?: string | null;
+          notes?: string | null;
+          status?: InvoiceStatus;
+          paid_at?: string | null;
+          payment_reference?: string | null;
+          pdf_path?: string | null;
+        };
+        Relationships: [];
+      };
+      invoice_items: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          organization_id: string;
+          description: string;
+          quantity: number;
+          unit_price_cents: number;
+          amount_cents: number;
+          sort_order: number;
+        } & Timestamps;
+        Insert: { invoice_id: string; description: string; quantity: number; unit_price_cents: number; sort_order?: number };
+        Update: { description?: string; quantity?: number; unit_price_cents?: number; sort_order?: number };
+        Relationships: [];
+      };
+      audit_events: {
+        Row: {
+          id: number;
+          occurred_at: string;
+          actor_id: string | null;
+          organization_id: string | null;
+          table_name: string;
+          record_id: string | null;
+          action: AuditAction;
+          changed_columns: string[];
+          old: Json | null;
+          new: Json | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      security_settings: {
+        Row: { id: boolean; require_staff_mfa: boolean; updated_at: string; updated_by: string | null };
+        Insert: never;
+        Update: { require_staff_mfa?: boolean };
+        Relationships: [];
+      };
+      auth_rate_limits: {
+        Row: { bucket: string; window_start: string; hits: number };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -318,6 +456,13 @@ export type Database = {
         Returns: { first_response_minutes: number; resolution_minutes: number }[];
       };
       staff_names: { Args: { p_ids: string[] }; Returns: { user_id: string; full_name: string | null }[] };
+      billing_today: { Args: Record<string, never>; Returns: string };
+      can_view_billing: { Args: { org: string }; Returns: boolean };
+      can_read_billing_object: { Args: { p_name: string }; Returns: boolean };
+      replace_invoice_items: { Args: { p_invoice: string; p_items: Json }; Returns: number };
+      mark_overdue_invoices: { Args: Record<string, never>; Returns: number };
+      lead_values: { Args: { p_org: string }; Returns: { id: string; stage: LeadStage; value_cents: number }[] };
+      auth_rate_limit_hit: { Args: { p_bucket: string; p_window_seconds: number; p_max: number }; Returns: boolean };
     };
     Enums: {
       org_role: OrgRole;
@@ -328,6 +473,9 @@ export type Database = {
       engagement_status: EngagementStatus;
       milestone_status: MilestoneStatus;
       report_status: ReportStatus;
+      contract_status: ContractStatus;
+      billing_cycle: BillingCycle;
+      invoice_status: InvoiceStatus;
     };
     CompositeTypes: Record<string, never>;
   };

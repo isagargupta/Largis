@@ -1,5 +1,8 @@
 import { z } from "zod";
 import {
+  billingCycles,
+  contractStatuses,
+  currencies,
   engagementStatuses,
   enquiryStatuses,
   milestoneStatuses,
@@ -31,6 +34,7 @@ const optionalText = (max: number) =>
       .transform((v) => v || null),
   );
 const optionalUuid = blank(z.union([uuid, z.literal("")]).transform((v) => v || null));
+const checkbox = z.preprocess((v) => v === "on" || v === "true", z.boolean());
 
 export const otpSendSchema = z.object({ email: emailField });
 
@@ -39,6 +43,33 @@ export const otpVerifySchema = z.object({
   token: z.string().trim().regex(/^\d{6,10}$/, "Enter the code from your email."),
   next: z.string().max(200).optional(),
 });
+
+const totpCode = z
+  .string()
+  .transform((v) => v.replace(/\s/g, ""))
+  .refine((v) => /^\d{6}$/.test(v), "Enter the 6-digit code from your authenticator app.");
+
+export const mfaVerifySchema = z.object({
+  factorId: uuid,
+  code: totpCode,
+  next: z.string().max(200).optional(),
+});
+
+export const mfaEnrollVerifySchema = z.object({ factorId: uuid, code: totpCode });
+
+export const mfaEnrollSchema = z.object({
+  friendlyName: blank(
+    z
+      .string()
+      .trim()
+      .max(60, "Keep the name under 60 characters.")
+      .transform((v) => v || "Authenticator app"),
+  ),
+});
+
+export const mfaRemoveSchema = z.object({ factorId: uuid });
+
+export const staffMfaSettingSchema = z.object({ requireStaffMfa: checkbox });
 
 export const leadSchema = z.object({
   organizationId: uuid,
@@ -117,6 +148,7 @@ export const clientUpdateSchema = z.object({
   plan: optionalText(40),
   region: optionalText(40),
   status: z.enum(orgStatuses),
+  requireMfa: checkbox,
 });
 
 export const staffInviteSchema = z.object({
@@ -158,8 +190,6 @@ const optionalMinutes = blank(
     .refine((v) => v === "" || (/^\d{1,6}$/.test(v) && Number(v) >= 1 && Number(v) <= 525600), "Enter whole minutes, 1 or more.")
     .transform((v) => (v === "" ? null : Number(v))),
 );
-
-const checkbox = z.preprocess((v) => v === "on" || v === "true", z.boolean());
 
 export const ticketCreateSchema = z.object({
   organizationId: uuid,
@@ -259,6 +289,94 @@ export const reportSaveSchema = z
     intent: z.enum(["save", "publish", "unpublish"]),
   })
   .refine((d) => endAfterStart(d.periodStart, d.periodEnd), { message: "End on or after the start date.", path: ["periodEnd"] });
+
+const MAX_AMOUNT_UNITS = 100_000_000_000;
+
+/** A non-negative amount in major units ("1,18,000.50") converted to minor units. */
+const amountField = (message = "Enter an amount, e.g. 45000.") =>
+  blank(
+    z
+      .string()
+      .trim()
+      .transform((v) => v.replace(/[,\s₹$€£]/g, ""))
+      .refine((v) => v === "" || (/^\d{1,12}(\.\d{1,2})?$/.test(v) && Number(v) <= MAX_AMOUNT_UNITS), message)
+      .transform((v) => (v === "" ? 0 : Math.round(Number(v) * 100))),
+  );
+
+export const contractSchema = z
+  .object({
+    id: optionalUuid,
+    organizationId: uuid,
+    title: z.string().trim().min(2, "Give the contract a title.").max(200),
+    serviceLine: z.enum(serviceLines, { message: "Choose a service line." }),
+    status: z.enum(contractStatuses, { message: "Choose a status." }),
+    billingCycle: z.enum(billingCycles, { message: "Choose a billing cycle." }),
+    currency: z.enum(currencies, { message: "Choose a currency." }),
+    monthlyValue: amountField(),
+    startDate: optionalDate,
+    endDate: optionalDate,
+    notes: optionalText(5000),
+  })
+  .refine((d) => endAfterStart(d.startDate, d.endDate), { message: "End on or after the start date.", path: ["endDate"] });
+
+export const invoiceCreateSchema = z.object({ organizationId: uuid, contractId: optionalUuid });
+
+const invoiceItemSchema = z.object({
+  description: z.string().trim().min(1, "Describe each line item.").max(500, "Keep line item descriptions under 500 characters."),
+  quantity: z
+    .string()
+    .trim()
+    .refine((v) => /^\d{1,7}(\.\d{1,2})?$/.test(v) && Number(v) > 0 && Number(v) <= 1_000_000, "Quantities must be above 0.")
+    .transform(Number),
+  unitPrice: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/[,\s₹$€£]/g, ""))
+    .refine((v) => /^\d{1,12}(\.\d{1,2})?$/.test(v) && Number(v) <= MAX_AMOUNT_UNITS, "Enter each unit price, e.g. 45000.")
+    .transform((v) => Math.round(Number(v) * 100)),
+});
+
+export type InvoiceItemInput = z.input<typeof invoiceItemSchema>;
+
+export const invoiceDraftSchema = z.object({
+  id: uuid,
+  organizationId: uuid,
+  contractId: optionalUuid,
+  currency: z.enum(currencies, { message: "Choose a currency." }),
+  taxRate: z
+    .string()
+    .trim()
+    .refine((v) => /^\d{1,3}(\.\d{1,2})?$/.test(v) && Number(v) <= 100, "Enter a GST rate between 0 and 100.")
+    .transform((v) => Math.round(Number(v) * 100)),
+  dueDate: optionalDate,
+  billTo: optionalText(1000),
+  notes: optionalText(2000),
+  items: z.preprocess(
+    (v) => {
+      try {
+        return JSON.parse(String(v ?? "[]"));
+      } catch {
+        return null;
+      }
+    },
+    z.array(invoiceItemSchema, { message: "Line items could not be read. Reload and try again." }).max(100, "Use at most 100 line items."),
+  ),
+  intent: z.enum(["save", "issue"]),
+  sendEmail: checkbox,
+});
+
+export const invoicePaidSchema = z.object({
+  id: uuid,
+  organizationId: uuid,
+  reference: optionalText(120),
+  paidOn: optionalDate,
+});
+
+export const invoiceVoidSchema = z.object({
+  id: uuid,
+  organizationId: uuid,
+  reason: optionalText(500),
+});
 
 export function slugify(name: string) {
   return name

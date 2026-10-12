@@ -92,7 +92,7 @@ export function UserMenu({
                     className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-paper-soft"
                   >
                     {link.label}
-                    <ArrowUpRight className="h-4 w-4 text-ink-subtle" />
+                    {/^https?:\/\//.test(link.href) && <ArrowUpRight className="h-4 w-4 text-ink-subtle" />}
                   </Link>
                 </li>
               ))}

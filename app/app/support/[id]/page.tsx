@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/portal/filters";
 import { SlaDetails } from "@/components/portal/SlaBadge";
 import { TicketReplyForm, TicketStatusButton } from "@/components/portal/SupportForms";
 import { TicketThread } from "@/components/portal/TicketViews";
+import { RealtimeRefresh } from "@/components/portal/RealtimeRefresh";
 import { PageHeader, Panel } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/portal/format";
@@ -59,6 +60,13 @@ export default async function ClientTicketPage({ params }: { params: { id: strin
 
   return (
     <div className="space-y-6">
+      <RealtimeRefresh
+        channel={`ticket-${ticket.id}`}
+        subscriptions={[
+          { table: "support_tickets", filter: `id=eq.${ticket.id}` },
+          { table: "ticket_messages", filter: `ticket_id=eq.${ticket.id}` },
+        ]}
+      />
       <Breadcrumb items={[{ label: "Support", href: portalHref("/app/support") }, { label: ticket.reference }]} />
 
       <PageHeader

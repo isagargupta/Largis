@@ -5,7 +5,8 @@ import { ActivityList } from "@/components/portal/ActivityList";
 import { TicketList, ticketListColumns } from "@/components/portal/TicketViews";
 import { EmptyState, PageHeader, Panel, Stat, StatGrid } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
-import { formatCents, formatDate, formatDay, formatPeriod, todayUtc } from "@/lib/portal/format";
+import { loadBillingSummary } from "@/lib/portal/billing-data";
+import { formatCents, formatDate, formatDay, formatMoney, formatMoneyTotals, formatPeriod, todayUtc } from "@/lib/portal/format";
 import { portalHref } from "@/lib/portal/hosts";
 import {
   activeTicketStatuses,
@@ -18,7 +19,7 @@ import {
   stageMeta,
   stageOrder,
 } from "@/lib/portal/meta";
-import { loadPeopleNames } from "@/lib/portal/queries";
+import { loadLeadValues, loadPeopleNames } from "@/lib/portal/queries";
 import { getClientContext, getProfiles } from "@/lib/portal/session";
 import { formatPercent } from "@/lib/portal/sla";
 import { loadSupportStats } from "@/lib/portal/support";
@@ -55,8 +56,10 @@ export default async function OverviewPage() {
     { data: engagements },
     { data: milestones },
     { data: latestReports },
+    values,
+    billing,
   ] = await Promise.all([
-    supabase.from("leads").select("stage, value_cents").eq("organization_id", org.id).limit(5000),
+    supabase.from("leads").select("id, stage").eq("organization_id", org.id).limit(5000),
     supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("organization_id", org.id),
     supabase
       .from("activity_log")
@@ -90,6 +93,8 @@ export default async function OverviewPage() {
       .eq("status", "published")
       .order("published_at", { ascending: false })
       .limit(1),
+    perms.canViewValue ? loadLeadValues(org.id) : Promise.resolve(new Map<string, number>()),
+    perms.canViewBilling ? loadBillingSummary(org.id, now) : Promise.resolve(null),
   ]);
 
   const visibleActivity = (activity ?? [])
@@ -100,8 +105,9 @@ export default async function OverviewPage() {
   const counts = Object.fromEntries(stageOrder.map((s) => [s, 0])) as Record<LeadStage, number>;
   rows.forEach((l) => counts[l.stage]++);
   const open = rows.filter((l) => openStages.includes(l.stage));
-  const openValue = open.reduce((sum, l) => sum + l.value_cents, 0);
-  const wonValue = rows.filter((l) => l.stage === "won").reduce((sum, l) => sum + l.value_cents, 0);
+  const valueOf = (id: string) => values.get(id) ?? 0;
+  const openValue = open.reduce((sum, l) => sum + valueOf(l.id), 0);
+  const wonValue = rows.filter((l) => l.stage === "won").reduce((sum, l) => sum + valueOf(l.id), 0);
   const [profiles, names] = await Promise.all([
     getProfiles(visibleActivity.map((a) => a.actor_id)),
     loadPeopleNames((tickets ?? []).map((t) => t.assigned_to)),
@@ -273,6 +279,20 @@ export default async function OverviewPage() {
         </Panel>
 
         <div className="space-y-6">
+          {billing && (
+            <Panel title="Billing" actions={<PanelLink href={portalHref("/app/billing")}>Invoices</PanelLink>} bodyClassName="p-4 sm:p-5">
+              <p className="text-sm text-ink-subtle">Outstanding balance</p>
+              <p className="mt-1 text-2xl tabular-nums tracking-tight">{formatMoneyTotals(billing.outstanding, formatMoney(0, "INR"))}</p>
+              <p className={cn("mt-2 text-xs", billing.overdueCount ? "text-red-700" : "text-ink-subtle")}>
+                {billing.overdueCount
+                  ? `${formatMoneyTotals(billing.overdue)} overdue across ${billing.overdueCount} ${billing.overdueCount === 1 ? "invoice" : "invoices"}`
+                  : billing.outstandingCount
+                    ? `${billing.outstandingCount} open ${billing.outstandingCount === 1 ? "invoice" : "invoices"}, none overdue`
+                    : "No invoices awaiting payment"}
+              </p>
+            </Panel>
+          )}
+
           <Panel title="Latest report" actions={latestReport ? <PanelLink href={portalHref("/app/reports")}>All reports</PanelLink> : undefined}>
             {latestReport ? (
               <Link href={portalHref(`/app/reports/${latestReport.id}`)} className="block px-4 py-4 hover:bg-paper-soft/70 sm:px-5">

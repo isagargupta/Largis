@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { portalForHost, portalOrigin, safeNextPath } from "@/lib/portal/hosts";
+import { verifiedTotpFactors } from "@/lib/portal/mfa";
+import { authLimits, withinLimit } from "@/lib/portal/rate-limit";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { otpVerifySchema } from "@/lib/validations/portal";
@@ -21,6 +24,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Enter the code from your email." }, { status: 422 });
   }
   const { email, token, next } = parsed.data;
+
+  if (!(await withinLimit(createAdminClient(), "otp-verify-email", email, authLimits.verifyPerEmail))) {
+    return NextResponse.json(
+      { ok: false, error: "Too many attempts. Wait 15 minutes, then request a new code." },
+      { status: 429, headers: { "Retry-After": String(authLimits.verifyPerEmail.windowSeconds) } },
+    );
+  }
 
   const supabase = createClient();
   const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
@@ -69,5 +79,16 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true, redirectTo: safeNextPath(next) ?? "/" });
+  const redirectTo = safeNextPath(next) ?? "/";
+  const factors = verifiedTotpFactors(data.user);
+  if (factors.length) {
+    return NextResponse.json({
+      ok: true,
+      mfaRequired: true,
+      redirectTo,
+      factors: factors.map((f) => ({ id: f.id, name: f.friendly_name || "Authenticator app" })),
+    });
+  }
+
+  return NextResponse.json({ ok: true, redirectTo });
 }

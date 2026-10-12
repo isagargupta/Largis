@@ -1,9 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { portalForHost, portalPrefix, portalUrl, type Portal } from "@/lib/portal/hosts";
+import { needsMfaChallenge, verifiedTotpFactors } from "@/lib/portal/mfa";
 import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 
 const NOINDEX = "noindex, nofollow";
+const PATH_HEADER = "x-largis-path";
 
 /** Paths a portal host serves as-is instead of mapping them into the portal's route segment. */
 function isPassthrough(pathname: string) {
@@ -64,7 +66,12 @@ export async function middleware(request: NextRequest) {
   const rewriteTo = isPassthrough(pathname)
     ? null
     : new URL(`${portalPrefix[portal]}${pathname === "/" ? "" : pathname}${search}`, request.url);
-  const forward = () => (rewriteTo ? NextResponse.rewrite(rewriteTo, { request }) : NextResponse.next({ request }));
+  // Layouts don't receive the pathname; they read it from this header (e.g. to allow MFA setup pages).
+  const forward = () => {
+    const headers = new Headers(request.headers);
+    headers.set(PATH_HEADER, pathname);
+    return rewriteTo ? NextResponse.rewrite(rewriteTo, { request: { headers } }) : NextResponse.next({ request: { headers } });
+  };
 
   if (!supabaseUrl || !supabaseKey) {
     if (!rewriteTo) return noindex(forward());
@@ -90,12 +97,21 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && rewriteTo) {
-    const login = new URL("/login", request.url);
-    login.searchParams.set("next", `${pathname}${search}`);
-    const redirect = NextResponse.redirect(login);
-    response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-    return noindex(redirect);
+  if (rewriteTo) {
+    let signIn = !user;
+    if (user && verifiedTotpFactors(user).length) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      signIn = needsMfaChallenge(user, session?.access_token);
+    }
+    if (signIn) {
+      const login = new URL("/login", request.url);
+      login.searchParams.set("next", `${pathname}${search}`);
+      const redirect = NextResponse.redirect(login);
+      response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+      return noindex(redirect);
+    }
   }
 
   return noindex(response);

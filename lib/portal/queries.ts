@@ -67,6 +67,15 @@ export async function loadPeopleNames(ids: (string | null | undefined)[], staffF
   return names;
 }
 
+/** Lead columns any member may read; deal values come from lead_values() for roles allowed to see them. */
+export const leadColumns = "id, company, contact_name, contact_email, stage, owner_id, source, notes, updated_at";
+
+export async function loadLeadValues(organizationId: string) {
+  const { data, error } = await createClient().rpc("lead_values", { p_org: organizationId });
+  if (error) console.error("[leads] Values unavailable", error.message);
+  return new Map((data ?? []).map((r) => [r.id, r.value_cents]));
+}
+
 export async function loadStaffOptions() {
   const directory = await loadStaffDirectory();
   return directory.filter((s) => s.active).map((s) => ({ id: s.userId, name: s.name }));

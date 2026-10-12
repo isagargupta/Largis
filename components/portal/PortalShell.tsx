@@ -8,9 +8,12 @@ import {
   Briefcase,
   Building2,
   Inbox,
+  KeyRound,
   LayoutDashboard,
   LifeBuoy,
   Menu,
+  ReceiptText,
+  ScrollText,
   TrendingUp,
   Users,
   X,
@@ -29,6 +32,9 @@ const icons = {
   enquiries: Inbox,
   clients: Building2,
   delivery: Briefcase,
+  billing: ReceiptText,
+  audit: ScrollText,
+  security: KeyRound,
 } satisfies Record<string, LucideIcon>;
 
 export type NavItem = {

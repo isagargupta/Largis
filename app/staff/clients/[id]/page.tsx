@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, ExternalLink, FileText } from "lucide-react";
 import { ActivityList } from "@/components/portal/ActivityList";
+import { ContractsManager, NewInvoiceButton } from "@/components/portal/BillingForms";
+import { InvoiceList, invoiceListColumns } from "@/components/portal/BillingViews";
 import { ClientSettingsForm } from "@/components/portal/ClientSettingsForm";
 import { EngagementsManager, type EngagementView } from "@/components/portal/EngagementsManager";
 import { LeadsManager } from "@/components/portal/LeadsManager";
@@ -12,10 +14,21 @@ import { TeamManager } from "@/components/portal/TeamManager";
 import { TicketList, ticketListColumns } from "@/components/portal/TicketViews";
 import { EmptyState, PageHeader, Panel, Stat, StatGrid } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
-import { displayName, formatCents, formatDate, formatDateTime, formatPeriod, todayUtc } from "@/lib/portal/format";
+import { billingToday } from "@/lib/portal/billing";
+import { contractColumns, loadBillingSummary, toContractView, toInvoiceListItem } from "@/lib/portal/billing-data";
+import {
+  displayName,
+  formatCents,
+  formatDate,
+  formatDateTime,
+  formatMoney,
+  formatMoneyTotals,
+  formatPeriod,
+  todayUtc,
+} from "@/lib/portal/format";
 import { portalHref, portalUrl } from "@/lib/portal/hosts";
 import { openStages, orgStatusMeta, reportStatusMeta, stageOrder, staffPermissions } from "@/lib/portal/meta";
-import { loadStaffOptions, loadTeam } from "@/lib/portal/queries";
+import { leadColumns, loadLeadValues, loadStaffOptions, loadTeam } from "@/lib/portal/queries";
 import { getProfiles, getUser, requestHost } from "@/lib/portal/session";
 import { formatPercent } from "@/lib/portal/sla";
 import { loadSupportStats } from "@/lib/portal/support";
@@ -32,6 +45,7 @@ const tabs = [
   { id: "support", label: "Support" },
   { id: "engagements", label: "Engagements" },
   { id: "reports", label: "Reports" },
+  { id: "billing", label: "Billing" },
   { id: "team", label: "Members" },
   { id: "leads", label: "Leads" },
   { id: "activity", label: "Activity" },
@@ -52,7 +66,7 @@ export default async function ClientPage({
   const [{ data: org }, user] = await Promise.all([
     supabase
       .from("organizations")
-      .select("id, name, slug, plan, region, status, created_at")
+      .select("id, name, slug, plan, region, status, require_mfa, created_at")
       .eq("id", params.id)
       .maybeSingle(),
     getUser(),
@@ -118,6 +132,7 @@ export default async function ClientPage({
       {tab === "support" && <Support organizationId={org.id} />}
       {tab === "engagements" && <Engagements organizationId={org.id} />}
       {tab === "reports" && <Reports organizationId={org.id} />}
+      {tab === "billing" && <Billing organizationId={org.id} />}
       {tab === "team" && <Members organizationId={org.id} userId={user.id} />}
       {tab === "leads" && (
         <Leads organizationId={org.id} slug={org.slug} userId={user.id} stage={searchParams.stage} />
@@ -130,11 +145,19 @@ export default async function ClientPage({
 async function Overview({
   org,
 }: {
-  org: { id: string; name: string; plan: string | null; region: string | null; status: OrgStatus; created_at: string };
+  org: {
+    id: string;
+    name: string;
+    plan: string | null;
+    region: string | null;
+    status: OrgStatus;
+    require_mfa: boolean;
+    created_at: string;
+  };
 }) {
   const supabase = createClient();
-  const [{ data: leads }, { count: members }, { count: invites }] = await Promise.all([
-    supabase.from("leads").select("stage, value_cents").eq("organization_id", org.id).limit(1000),
+  const [leads, { count: members }, { count: invites }] = await Promise.all([
+    supabase.rpc("lead_values", { p_org: org.id }).then(({ data }) => data ?? []),
     supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("organization_id", org.id),
     supabase
       .from("invitations")
@@ -143,7 +166,7 @@ async function Overview({
       .is("accepted_at", null)
       .is("revoked_at", null),
   ]);
-  const open = (leads ?? []).filter((l) => openStages.includes(l.stage));
+  const open = leads.filter((l) => openStages.includes(l.stage));
   const openValue = open.reduce((sum, l) => sum + l.value_cents, 0);
 
   return (
@@ -162,7 +185,14 @@ async function Overview({
           bodyClassName="p-4 sm:p-5"
         >
           <ClientSettingsForm
-            client={{ id: org.id, name: org.name, plan: org.plan, region: org.region, status: org.status }}
+            client={{
+              id: org.id,
+              name: org.name,
+              plan: org.plan,
+              region: org.region,
+              status: org.status,
+              requireMfa: org.require_mfa,
+            }}
           />
         </Panel>
         <Panel title="Recent activity">
@@ -354,6 +384,70 @@ async function Reports({ organizationId }: { organizationId: string }) {
   );
 }
 
+async function Billing({ organizationId }: { organizationId: string }) {
+  const now = Date.now();
+  const today = billingToday(now);
+  const supabase = createClient();
+  const [{ data: contracts, error }, { data: invoices }, summary] = await Promise.all([
+    supabase.from("contracts").select(contractColumns).eq("organization_id", organizationId).order("created_at", { ascending: false }),
+    supabase
+      .from("invoices")
+      .select(invoiceListColumns)
+      .eq("organization_id", organizationId)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    loadBillingSummary(organizationId, now),
+  ]);
+
+  if (error) {
+    return (
+      <p role="alert" className="border-l-2 border-red-600 bg-red-50 px-4 py-3 text-sm text-red-800">
+        Billing could not be loaded. Please refresh the page.
+      </p>
+    );
+  }
+
+  const contractViews = (contracts ?? []).map(toContractView);
+  const invoiceItems = (invoices ?? []).map((inv) => toInvoiceListItem(inv, today));
+  const zero = formatMoney(0, "INR");
+
+  return (
+    <div className="space-y-6">
+      <StatGrid className="xl:grid-cols-3">
+        <Stat label="Outstanding" value={formatMoneyTotals(summary.outstanding, zero)} hint={`${summary.outstandingCount} open`} />
+        <Stat
+          label="Overdue"
+          value={<span className={summary.overdueCount ? "text-red-700" : undefined}>{formatMoneyTotals(summary.overdue, zero)}</span>}
+          hint={`${summary.overdueCount} past the due date`}
+        />
+        <Stat label="Paid this month" value={formatMoneyTotals(summary.paidThisMonth, zero)} />
+      </StatGrid>
+
+      <ContractsManager organizationId={organizationId} contracts={contractViews} />
+
+      <Panel
+        title="Invoices"
+        actions={
+          <NewInvoiceButton
+            organizationId={organizationId}
+            contracts={contractViews
+              .filter((c) => c.status === "active" || c.status === "draft")
+              .map((c) => ({ id: c.id, name: c.title, organizationId }))}
+            variant="outline"
+          />
+        }
+      >
+        <InvoiceList
+          invoices={invoiceItems}
+          basePath={portalHref("/staff/billing")}
+          emptyTitle="No invoices yet"
+          emptyText="Create a draft, add line items, and issue it. Clients see invoices once issued."
+        />
+      </Panel>
+    </div>
+  );
+}
+
 async function Members({ organizationId, userId }: { organizationId: string; userId: string }) {
   const { members, invitations } = await loadTeam(organizationId, userId, true);
   const portal = portalUrl("app", "/login", requestHost());
@@ -390,14 +484,15 @@ async function Leads({
   stage?: string;
 }) {
   const supabase = createClient();
-  const [{ data: leads, error }, { data: memberships }] = await Promise.all([
+  const [{ data: leads, error }, { data: memberships }, values] = await Promise.all([
     supabase
       .from("leads")
-      .select("id, company, contact_name, contact_email, stage, value_cents, owner_id, source, notes, updated_at")
+      .select(leadColumns)
       .eq("organization_id", organizationId)
       .order("updated_at", { ascending: false })
       .limit(1000),
     supabase.from("memberships").select("user_id").eq("organization_id", organizationId),
+    loadLeadValues(organizationId),
   ]);
   const profiles = await getProfiles((memberships ?? []).map((m) => m.user_id));
   const members = (memberships ?? [])
@@ -416,7 +511,7 @@ async function Leads({
     <LeadsManager
       organizationId={organizationId}
       exportName={slug}
-      leads={leads ?? []}
+      leads={(leads ?? []).map((l) => ({ ...l, value_cents: values.get(l.id) ?? 0 }))}
       members={members}
       perms={staffPermissions}
       currentUserId={userId}

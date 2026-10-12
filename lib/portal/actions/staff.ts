@@ -130,10 +130,16 @@ export async function updateClientOrganization(_: ActionState, formData: FormDat
 
   const parsed = clientUpdateSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return failure("Please review the highlighted fields.", fieldErrorsFrom(parsed.error));
-  const { id, ...input } = parsed.data;
+  const { id, requireMfa, ...input } = parsed.data;
 
   const supabase = createClient();
-  const { error } = await supabase.from("organizations").update(input).eq("id", id);
+  const { data: previous } = await supabase.from("organizations").select("require_mfa").eq("id", id).maybeSingle();
+  if (!previous) return failure("That client could not be found.");
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({ ...input, require_mfa: requireMfa })
+    .eq("id", id);
   if (error) return failure(friendlyDbError(error));
 
   await logActivity(supabase, {
@@ -143,6 +149,15 @@ export async function updateClientOrganization(_: ActionState, formData: FormDat
     entity_id: id,
     metadata: { label: input.name, status: input.status },
   });
+  if (previous.require_mfa !== requireMfa) {
+    await logActivity(supabase, {
+      organization_id: id,
+      action: "organization.mfa_changed",
+      entity: "organization",
+      entity_id: id,
+      metadata: { label: input.name, required: requireMfa },
+    });
+  }
 
   revalidatePath("/", "layout");
   return { status: "success", message: "Client details saved." };

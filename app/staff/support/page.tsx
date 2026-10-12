@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FilterBar, FilterSearch, FilterSelect } from "@/components/portal/filters";
 import { NewTicketButton } from "@/components/portal/SupportForms";
 import { TicketList, ticketListColumns } from "@/components/portal/TicketViews";
+import { RealtimeRefresh } from "@/components/portal/RealtimeRefresh";
 import { PageHeader, Panel, Stat, StatGrid } from "@/components/portal/ui";
 import { portalHref } from "@/lib/portal/hosts";
 import { activeTicketStatuses, ticketPriorities, ticketPriorityMeta, ticketStatuses, ticketStatusMeta } from "@/lib/portal/meta";
@@ -84,6 +85,7 @@ export default async function SupportQueuePage({
 
   return (
     <div className="space-y-6">
+      <RealtimeRefresh channel="staff-support-queue" subscriptions={[{ table: "support_tickets" }]} />
       <PageHeader
         eyebrow="Support"
         title="Support queue"

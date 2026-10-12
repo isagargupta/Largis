@@ -6,7 +6,8 @@ import { TicketList, ticketListColumns } from "@/components/portal/TicketViews";
 import { EmptyState, PageHeader, Panel, Stat, StatGrid } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { formatDateTime, todayUtc } from "@/lib/portal/format";
+import { loadBillingSummary } from "@/lib/portal/billing-data";
+import { formatDateTime, formatMoney, formatMoneyTotals, todayUtc } from "@/lib/portal/format";
 import { portalHref } from "@/lib/portal/hosts";
 import { activeTicketStatuses, enquiryStatusMeta, openStages } from "@/lib/portal/meta";
 import { loadStaffOptions } from "@/lib/portal/queries";
@@ -42,6 +43,7 @@ export default async function StaffDashboardPage() {
     engagements,
     overdueMilestones,
     staff,
+    billing,
   ] = await Promise.all([
     supabase.from("organizations").select("id, name, status"),
     supabase.from("contact_submissions").select("id", { count: "exact", head: true }).eq("status", "new"),
@@ -66,6 +68,7 @@ export default async function StaffDashboardPage() {
     supabase.from("engagements").select("id, status").neq("status", "completed"),
     supabase.from("milestones").select("id, engagement_id").neq("status", "done").lt("due_date", today).limit(2000),
     loadStaffOptions(),
+    loadBillingSummary(null, now),
   ]);
 
   const orgRows = orgs.data ?? [];
@@ -99,7 +102,7 @@ export default async function StaffDashboardPage() {
       <PageHeader
         eyebrow="Largis Workspace"
         title="Dashboard"
-        description="Support queues, delivery, incoming enquiries, and recent changes across every client."
+        description="Support queues, delivery, billing, incoming enquiries, and recent changes across every client."
         actions={
           <ButtonLink href={portalHref("/staff/clients/new")} size="sm">
             Add client
@@ -129,17 +132,27 @@ export default async function StaffDashboardPage() {
           hint="Across current engagements"
         />
         <Stat
+          label="Outstanding invoices"
+          value={formatMoneyTotals(billing.outstanding, formatMoney(0, "INR"))}
+          hint={
+            <Link href={`${portalHref("/staff/billing")}?status=outstanding`} className="hover:text-ink">
+              {billing.outstandingCount.toLocaleString("en-US")} awaiting payment
+            </Link>
+          }
+        />
+        <Stat
+          label="Overdue invoices"
+          value={
+            <span className={billing.overdueCount ? "text-red-700" : undefined}>{billing.overdueCount.toLocaleString("en-US")}</span>
+          }
+          hint={billing.overdueCount ? `${formatMoneyTotals(billing.overdue)} past due` : "Nothing past due"}
+        />
+        <Stat
           label="Active clients"
           value={activeClients.toLocaleString("en-US")}
-          hint={`${orgRows.length.toLocaleString("en-US")} client organisations in total`}
+          hint={`${orgRows.length.toLocaleString("en-US")} in total · ${(openLeads.count ?? 0).toLocaleString("en-US")} open leads · ${(pendingInvites.count ?? 0).toLocaleString("en-US")} invitations pending`}
         />
         <Stat label="New enquiries" value={(newEnquiries.count ?? 0).toLocaleString("en-US")} hint="Awaiting a first reply" />
-        <Stat label="Open leads" value={(openLeads.count ?? 0).toLocaleString("en-US")} hint="Across all clients" />
-        <Stat
-          label="Pending invitations"
-          value={(pendingInvites.count ?? 0).toLocaleString("en-US")}
-          hint="Not yet accepted"
-        />
       </StatGrid>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">

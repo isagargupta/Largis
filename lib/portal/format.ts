@@ -6,7 +6,15 @@ import {
   ticketPriorityMeta,
   ticketStatusMeta,
 } from "@/lib/portal/meta";
-import type { EngagementStatus, LeadStage, OrgRole, StaffRole, TicketPriority, TicketStatus } from "@/lib/supabase/types";
+import type {
+  Currency,
+  EngagementStatus,
+  LeadStage,
+  OrgRole,
+  StaffRole,
+  TicketPriority,
+  TicketStatus,
+} from "@/lib/supabase/types";
 
 export type Profile = { id: string; email: string | null; full_name: string | null };
 
@@ -53,6 +61,31 @@ export function formatCents(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
     cents / 100,
   );
+}
+
+const moneyFormatters = new Map<string, Intl.NumberFormat>();
+
+/** Billing amounts in minor units; rupees use Indian digit grouping (1,18,000.00). */
+export function formatMoney(cents: number, currency: Currency) {
+  let formatter = moneyFormatters.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    moneyFormatters.set(currency, formatter);
+  }
+  return formatter.format(cents / 100);
+}
+
+/** Per-currency totals, e.g. "₹1,18,000.00 + $2,000.00"; a dash when empty. */
+export function formatMoneyTotals(totals: Partial<Record<Currency, number>>, empty = "—") {
+  const parts = (Object.entries(totals) as [Currency, number][])
+    .filter(([, cents]) => cents !== 0)
+    .map(([currency, cents]) => formatMoney(cents, currency));
+  return parts.length ? parts.join(" + ") : empty;
 }
 
 type ActivityRow = { action: string; metadata: unknown };
@@ -144,6 +177,22 @@ export function describeActivity(row: ActivityRow) {
       return `published report ${label}`;
     case "report.unpublished":
       return `withdrew report ${label}`;
+    case "contract.created":
+      return `added contract ${label}`;
+    case "contract.updated":
+      return `updated contract ${label}`;
+    case "contract.deleted":
+      return `removed contract ${label}`;
+    case "invoice.issued":
+      return `issued invoice ${label}`;
+    case "invoice.paid":
+      return `recorded payment for invoice ${label}`;
+    case "invoice.voided":
+      return `voided invoice ${label}`;
+    case "security.staff_mfa_changed":
+      return m.required ? "required MFA for all staff" : "made MFA optional for staff";
+    case "organization.mfa_changed":
+      return m.required ? `required MFA for ${label}` : `made MFA optional for ${label}`;
     default:
       return row.action.replace(/[._]/g, " ");
   }

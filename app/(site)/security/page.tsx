@@ -41,7 +41,7 @@ const controls = [
     title: "Staff access and audit",
     text: "Our own staff get the least access they need to do their job, and every action on production systems is recorded.",
     points: [
-      "Multi-factor authentication for all staff accounts",
+      "Authenticator-app MFA for staff accounts, enforceable across the whole team",
       "Support agents only see the systems and records assigned to them",
       "Access to production is logged and reviewed",
     ],

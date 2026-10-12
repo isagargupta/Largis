@@ -87,3 +87,46 @@ export function reportPublishedEmail(i: {
 
   return { subject: `New report: ${i.title}`, html, text };
 }
+
+export function invoiceIssuedEmail(i: {
+  number: string;
+  organizationName: string;
+  total: string;
+  dueDate: string;
+  recipientName?: string | null;
+  link: string;
+}) {
+  const greeting = i.recipientName ? `Hello ${i.recipientName.split(" ")[0]},` : "Hello,";
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 0;font-size:14px;color:#7d7f88;">${escapeHtml(label)}</td><td style="padding:6px 0;font-size:14px;text-align:right;font-weight:600;">${escapeHtml(value)}</td></tr>`;
+
+  const html = layout(`
+    ${eyebrow("Invoice")}
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;">${escapeHtml(i.number)}</h1>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">${escapeHtml(greeting)}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4c4f5a;">
+      A new invoice for ${escapeHtml(i.organizationName)} is available on the client portal.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border-top:1px solid #e6e2d8;border-bottom:1px solid #e6e2d8;">
+      ${row("Amount due", i.total)}
+      ${row("Due date", i.dueDate)}
+    </table>
+    ${button(i.link, "View and download")}
+    <p style="margin:0;font-size:13px;line-height:1.6;color:#7d7f88;">Questions about this invoice? Reply to this email or contact ${escapeHtml(siteConfig.email)}.</p>
+  `);
+
+  const text = [
+    greeting,
+    "",
+    `Invoice ${i.number} for ${i.organizationName} is available on the client portal.`,
+    "",
+    `Amount due: ${i.total}`,
+    `Due date: ${i.dueDate}`,
+    "",
+    `View and download: ${i.link}`,
+    "",
+    `— ${siteConfig.name}`,
+  ].join("\n");
+
+  return { subject: `Invoice ${i.number} from ${siteConfig.name}`, html, text };
+}

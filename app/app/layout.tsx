@@ -8,7 +8,16 @@ import { UserMenu } from "@/components/portal/UserMenu";
 import { displayName } from "@/lib/portal/format";
 import { marketingOrigin, portalHref, portalUrl } from "@/lib/portal/hosts";
 import { rolePermissions } from "@/lib/portal/meta";
-import { getClientContext, getProfiles, getStaffMember, requestHost, requireUser } from "@/lib/portal/session";
+import {
+  getClientContext,
+  getClientMfaRequirement,
+  getMfaState,
+  getProfiles,
+  getStaffMember,
+  requestHost,
+  requestPath,
+  requireUser,
+} from "@/lib/portal/session";
 import { siteConfig } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,6 +33,13 @@ export default async function ClientPortalLayout({ children }: { children: React
   if (!ctx) redirect("/login");
   if (!ctx.orgs.length && staff) redirect(portalUrl("staff", "/staff", host));
 
+  const path = requestPath();
+  const securityPath = portalHref("/app/account/security");
+  const [mfa, requiredBy] = await Promise.all([getMfaState(), getClientMfaRequirement()]);
+  if (mfa?.needsChallenge) redirect(`/login?next=${encodeURIComponent(path || "/")}`);
+  const mustEnroll = requiredBy.length > 0 && !mfa?.factors.length;
+  if (mustEnroll && path !== securityPath) redirect(securityPath);
+
   const active = ctx.active;
   const perms = active ? rolePermissions[active.role] : null;
   const { count: awaitingReply } = active
@@ -34,13 +50,16 @@ export default async function ClientPortalLayout({ children }: { children: React
         .eq("status", "pending_client")
     : { count: 0 };
 
-  const nav: NavItem[] = [
-    { href: portalHref("/app"), label: "Overview", icon: "overview" },
-    { href: portalHref("/app/sales-tracker"), label: "Sales Tracker", icon: "sales" },
-    { href: portalHref("/app/support"), label: "Support", icon: "support", count: awaitingReply ?? 0 },
-    { href: portalHref("/app/reports"), label: "Reports", icon: "reports" },
-    { href: portalHref("/app/team"), label: "Team", icon: "team" },
-  ];
+  const nav: NavItem[] = mustEnroll
+    ? [{ href: securityPath, label: "Account security", icon: "security" }]
+    : [
+        { href: portalHref("/app"), label: "Overview", icon: "overview" },
+        { href: portalHref("/app/sales-tracker"), label: "Sales Tracker", icon: "sales" },
+        { href: portalHref("/app/support"), label: "Support", icon: "support", count: awaitingReply ?? 0 },
+        { href: portalHref("/app/reports"), label: "Reports", icon: "reports" },
+        ...(perms?.canViewBilling ? [{ href: portalHref("/app/billing"), label: "Billing", icon: "billing" as const }] : []),
+        { href: portalHref("/app/team"), label: "Team", icon: "team" },
+      ];
   const switcher =
     ctx.orgs.length > 1 && active ? (
       <ActiveOrgSwitcher
@@ -71,6 +90,7 @@ export default async function ClientPortalLayout({ children }: { children: React
           email={user.email ?? displayName(profiles.get(user.id))}
           roleLabel={active && perms ? `${perms.label} · ${active.name}` : undefined}
           links={[
+            { label: "Account security", href: securityPath },
             ...(staff ? [{ label: "Largis Workspace", href: portalUrl("staff", "/staff", host) }] : []),
             { label: "Largis website", href: marketingOrigin(siteConfig.url, host) },
           ]}
@@ -89,7 +109,7 @@ export default async function ClientPortalLayout({ children }: { children: React
         )
       }
     >
-      {active ? (
+      {active || path === securityPath ? (
         children
       ) : (
         <div className="mx-auto max-w-xl border border-line bg-white">
