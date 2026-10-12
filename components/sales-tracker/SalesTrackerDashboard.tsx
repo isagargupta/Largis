@@ -13,20 +13,9 @@ import {
   viewers,
   type Lead,
 } from "@/lib/mock/sales-tracker";
+import { leadSources as sources, stageColor, stageOrder } from "@/lib/portal/meta";
 import type { LeadStage } from "@/lib/supabase/types";
 import { cn, formatCurrency } from "@/lib/utils";
-
-const stageOrder: LeadStage[] = ["new", "qualified", "proposal", "negotiation", "won", "lost"];
-const sources: Lead["source"][] = ["Inbound", "BPO Chat", "Referral", "Outbound", "Partner"];
-
-const stageColor: Record<LeadStage, string> = {
-  new: "bg-neutral-400",
-  qualified: "bg-sky-500",
-  proposal: "bg-brand-500",
-  negotiation: "bg-amber-500",
-  won: "bg-emerald-500",
-  lost: "bg-red-400",
-};
 
 const sidebar = ["Overview", "Sales Tracker", "Support operations", "Reports", "Settings"];
 

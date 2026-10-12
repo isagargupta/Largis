@@ -64,8 +64,8 @@ export default function SoftwarePage() {
               description="Track revenue and leads across every organisation you run, with each one's data kept apart."
             />
             <FeatureList items={trackerFeatures} />
-            <ButtonLink href="/app/sales-tracker" className="mt-10">
-              Open the live preview
+            <ButtonLink href="/software/preview" className="mt-10">
+              Open the preview
             </ButtonLink>
           </div>
           <SoftwarePreview />

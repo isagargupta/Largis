@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { SocialIcon } from "@/components/SocialIcon";
+import { CLIENT_LOGIN_URL } from "@/lib/portal/hosts";
 import { legalNav, siteConfig, socialLinks } from "@/lib/site";
 
 const columns = [
@@ -16,7 +17,7 @@ const columns = [
     title: "Software & Security",
     links: [
       { label: "Sales Tracker", href: "/software" },
-      { label: "Client portal preview", href: "/app/sales-tracker" },
+      { label: "Client portal preview", href: "/software/preview" },
       { label: "Security & Compliance", href: "/security" },
     ],
   },
@@ -25,7 +26,7 @@ const columns = [
     links: [
       { label: "About us", href: "/company" },
       { label: "Contact us", href: "/contact" },
-      { label: "Client sign in", href: "/login" },
+      { label: "Client sign in", href: CLIENT_LOGIN_URL },
     ],
   },
 ];

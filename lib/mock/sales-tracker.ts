@@ -140,19 +140,4 @@ export const leads: Lead[] = Object.entries(seed).flatMap(([organizationId, rows
   })),
 );
 
-export const stageMeta: Record<LeadStage, { label: string; tone: "neutral" | "info" | "brand" | "warning" | "success" | "danger" }> = {
-  new: { label: "New", tone: "neutral" },
-  qualified: { label: "Qualified", tone: "info" },
-  proposal: { label: "Proposal", tone: "brand" },
-  negotiation: { label: "Negotiation", tone: "warning" },
-  won: { label: "Closed Won", tone: "success" },
-  lost: { label: "Closed Lost", tone: "danger" },
-};
-
-export const rolePermissions: Record<OrgRole, { label: string; scope: string; canViewValue: boolean; canEdit: boolean; ownOnly: boolean }> = {
-  owner: { label: "Owner", scope: "Full organization access", canViewValue: true, canEdit: true, ownOnly: false },
-  admin: { label: "Admin", scope: "Full organization access", canViewValue: true, canEdit: true, ownOnly: false },
-  manager: { label: "Manager", scope: "Team pipeline · read & write", canViewValue: true, canEdit: true, ownOnly: false },
-  agent: { label: "Agent", scope: "Assigned leads only · values masked", canViewValue: false, canEdit: true, ownOnly: true },
-  viewer: { label: "Viewer", scope: "Read-only", canViewValue: true, canEdit: false, ownOnly: false },
-};
+export { rolePermissions, stageMeta } from "@/lib/portal/meta";

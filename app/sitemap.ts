@@ -6,6 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/",
     "/services",
     "/software",
+    "/software/preview",
     "/security",
     "/company",
     "/contact",

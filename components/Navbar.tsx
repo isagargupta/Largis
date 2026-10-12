@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo";
 import { SuiteVisual } from "@/components/SuiteVisual";
 import { Eyebrow } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
+import { CLIENT_LOGIN_URL } from "@/lib/portal/hosts";
 import { mainNav } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -92,7 +93,7 @@ export function Navbar() {
           </ul>
 
           <div className="hidden items-center gap-6 xl:flex">
-            <Link href="/login" className="text-sm font-medium text-white/75 transition-colors hover:text-white">
+            <Link href={CLIENT_LOGIN_URL} className="text-sm font-medium text-white/75 transition-colors hover:text-white">
               Sign in
             </Link>
             <ButtonLink href="/contact" size="sm">
@@ -226,7 +227,7 @@ export function Navbar() {
             })}
           </ul>
           <div className="mt-auto grid gap-3 pt-10">
-            <ButtonLink href="/login" variant="outline-light" size="lg" onClick={() => setMobileOpen(false)}>
+            <ButtonLink href={CLIENT_LOGIN_URL} variant="outline-light" size="lg" onClick={() => setMobileOpen(false)}>
               Sign in
             </ButtonLink>
             <ButtonLink href="/contact" size="lg" onClick={() => setMobileOpen(false)}>

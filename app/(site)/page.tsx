@@ -175,7 +175,7 @@ export default function HomePage() {
               ))}
             </ul>
             <div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
-              <ButtonLink href="/app/sales-tracker">Open the live preview</ButtonLink>
+              <ButtonLink href="/software/preview">Open the preview</ButtonLink>
               <TextLink href="/software">About the software</TextLink>
             </div>
           </div>

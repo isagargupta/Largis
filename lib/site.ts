@@ -69,11 +69,11 @@ export const mainNav: MegaMenu[] = [
       { label: "Sales Tracker", href: "/software#sales-tracker" },
       { label: "Client portal", href: "/software#portal" },
       { label: "Roles and access", href: "/software#access" },
-      { label: "Open the live preview", href: "/app/sales-tracker" },
+      { label: "Preview with sample data", href: "/software/preview" },
     ],
     feature: {
       title: "See revenue, leads, and response times in one place",
-      href: "/app/sales-tracker",
+      href: "/software/preview",
     },
   },
   {

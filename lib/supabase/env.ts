@@ -7,3 +7,8 @@ export const supabaseKey =
 export function isSupabaseConfigured() {
   return Boolean(supabaseUrl && supabaseKey);
 }
+
+/** Portal sign-in needs the server-only secret key to check who has access before sending a code. */
+export function isPortalAuthConfigured() {
+  return isSupabaseConfigured() && Boolean(process.env.SUPABASE_SECRET_KEY);
+}

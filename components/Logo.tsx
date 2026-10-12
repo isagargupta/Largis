@@ -11,10 +11,18 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-export function Logo({ className, tone = "light" }: { className?: string; tone?: "light" | "dark" }) {
+export function Logo({
+  className,
+  tone = "light",
+  href = "/",
+}: {
+  className?: string;
+  tone?: "light" | "dark";
+  href?: string;
+}) {
   return (
     <Link
-      href="/"
+      href={href}
       aria-label="Largis Venture home"
       className={cn("inline-flex items-center gap-2.5", tone === "light" ? "text-white" : "text-ink", className)}
     >
