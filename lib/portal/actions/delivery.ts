@@ -9,6 +9,7 @@ import { failure, friendlyDbError, type ActionState } from "@/lib/portal/action-
 import { formatPeriod } from "@/lib/portal/format";
 import { portalHref, portalUrl } from "@/lib/portal/hosts";
 import { getProfiles, getStaffMember, getUser, requestHost } from "@/lib/portal/session";
+import { orgMemberIds, sendPushToUsers } from "@/lib/push";
 import { siteConfig } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -342,13 +343,18 @@ async function notifyReportPublished(
   organizationId: string,
   report: { id: string; title: string; summary: string | null; period: string | null },
 ) {
-  if (!isEmailConfigured() || !hasVerifiedSender()) return 0;
-
   const supabase = createClient();
   const [{ data: org }, { data: members }] = await Promise.all([
     supabase.from("organizations").select("name").eq("id", organizationId).maybeSingle(),
     supabase.from("memberships").select("user_id").eq("organization_id", organizationId).in("role", ["owner", "admin"]),
   ]);
+  await sendPushToUsers(await orgMemberIds(organizationId), {
+    title: "New report",
+    body: report.title,
+    data: { screen: "report", id: report.id, organizationId },
+  });
+  if (!isEmailConfigured() || !hasVerifiedSender()) return 0;
+
   const profiles = await getProfiles((members ?? []).map((m) => m.user_id));
   const link = portalUrl("app", `/app/reports/${report.id}`, requestHost());
 

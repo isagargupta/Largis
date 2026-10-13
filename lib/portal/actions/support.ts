@@ -11,6 +11,7 @@ import { portalHref, portalUrl } from "@/lib/portal/hosts";
 import { ticketPriorities } from "@/lib/portal/meta";
 import { getOrgAccess, getProfiles, getStaffMember, getUser, requestHost } from "@/lib/portal/session";
 import { isClosedStatus } from "@/lib/portal/sla";
+import { sendPushToUsers } from "@/lib/push";
 import { siteConfig } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
@@ -33,7 +34,7 @@ async function staffContext() {
 async function loadTicket(id: string) {
   const { data } = await createClient()
     .from("support_tickets")
-    .select("id, organization_id, reference, subject, status, priority, assigned_to, requester_name, requester_email")
+    .select("id, organization_id, reference, subject, status, priority, assigned_to, created_by, requester_name, requester_email")
     .eq("id", id)
     .maybeSingle();
   return data;
@@ -157,6 +158,13 @@ export async function replyToTicket(_: ActionState, formData: FormData): Promise
     } catch (err) {
       console.error("[support] Reply email failed", err);
     }
+  }
+  if (access.staff && !input.internal) {
+    await sendPushToUsers([ticket.created_by], {
+      title: `Reply on ${ticket.reference}`,
+      body: input.body,
+      data: { screen: "ticket", id: ticket.id, organizationId: ticket.organization_id },
+    });
   }
 
   revalidatePath("/", "layout");

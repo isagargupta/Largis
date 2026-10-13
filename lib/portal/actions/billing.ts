@@ -11,6 +11,7 @@ import { formatDay, formatMoney } from "@/lib/portal/format";
 import { portalHref, portalUrl } from "@/lib/portal/hosts";
 import { renderInvoicePdf } from "@/lib/portal/invoice-pdf";
 import { getProfiles, getStaffMember, getUser, requestHost } from "@/lib/portal/session";
+import { sendPushToUsers } from "@/lib/push";
 import { siteConfig } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -463,14 +464,21 @@ export async function runOverdueCheck(_: ActionState): Promise<ActionState> {
 
 /** Emails client owners and admins; delivery problems never block issuing. */
 async function notifyInvoiceIssued(organizationId: string, invoice: { number: string; total: string; dueDate: string }) {
-  if (!isEmailConfigured() || !hasVerifiedSender()) return 0;
-
   const supabase = createClient();
   const [{ data: org }, { data: members }] = await Promise.all([
     supabase.from("organizations").select("name").eq("id", organizationId).maybeSingle(),
-    supabase.from("memberships").select("user_id").eq("organization_id", organizationId).in("role", ["owner", "admin"]),
+    supabase.from("memberships").select("user_id, role").eq("organization_id", organizationId).in("role", ["owner", "admin", "manager"]),
   ]);
-  const profiles = await getProfiles((members ?? []).map((m) => m.user_id));
+  await sendPushToUsers((members ?? []).map((m) => m.user_id), {
+    title: `Invoice ${invoice.number}`,
+    body: `${invoice.total} due ${invoice.dueDate}`,
+    data: { screen: "billing", organizationId },
+  });
+  if (!isEmailConfigured() || !hasVerifiedSender()) return 0;
+
+  const profiles = await getProfiles(
+    (members ?? []).filter((m) => m.role !== "manager").map((m) => m.user_id),
+  );
   const link = portalUrl("app", "/app/billing", requestHost());
 
   let sent = 0;

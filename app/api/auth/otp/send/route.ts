@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { isReviewEmail } from "@/lib/mobile/review";
 import { authLimits, clientIp, withinLimit } from "@/lib/portal/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPortalAuthConfigured, supabaseKey, supabaseUrl } from "@/lib/supabase/env";
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Enter a valid work email address." }, { status: 422 });
   }
   const { email } = parsed.data;
+  if (isReviewEmail(email)) return NextResponse.json({ ok: true, message: GENERIC });
 
   // Over the limit, respond exactly as for an unknown address so limits reveal nothing about accounts.
   const [ipOk, emailOk] = await Promise.all([

@@ -459,6 +459,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      device_tokens: {
+        Row: { token: string; user_id: string; platform: "ios" | "android"; created_at: string; updated_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -493,6 +499,8 @@ export type Database = {
         }[];
       };
       chat_mark_read: { Args: { p_org: string }; Returns: undefined };
+      register_device_token: { Args: { p_token: string; p_platform: "ios" | "android" }; Returns: undefined };
+      unregister_device_token: { Args: { p_token: string }; Returns: undefined };
     };
     Enums: {
       org_role: OrgRole;

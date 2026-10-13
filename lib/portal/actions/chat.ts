@@ -8,6 +8,7 @@ import { displayName } from "@/lib/portal/format";
 import { portalUrl } from "@/lib/portal/hosts";
 import { isUuid } from "@/lib/portal/params";
 import { getOrgAccess, getProfiles, requestHost } from "@/lib/portal/session";
+import { orgMemberIds, sendPushToUsers } from "@/lib/push";
 import { siteConfig } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import type { TicketAuthorKind } from "@/lib/supabase/types";
@@ -51,6 +52,13 @@ export async function sendChatMessage(organizationId: string, body: string): Pro
     });
   } catch (err) {
     console.error("[chat] Notification failed", err);
+  }
+  if (data.author_kind === "staff") {
+    await sendPushToUsers(await orgMemberIds(input.organizationId), {
+      title: `${senderName} · Largis`,
+      body: data.body,
+      data: { screen: "messages", organizationId: input.organizationId },
+    });
   }
 
   return {

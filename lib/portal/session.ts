@@ -7,7 +7,7 @@ import { portalHref, portalUrl } from "@/lib/portal/hosts";
 import { rolePermissions, staffPermissions, type RolePermissions } from "@/lib/portal/meta";
 import { aalFromAccessToken, verifiedTotpFactors } from "@/lib/portal/mfa";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getAuthSession } from "@/lib/supabase/server";
 import type { Database, OrgRole } from "@/lib/supabase/types";
 
 export const ORG_COOKIE = "largis_org";
@@ -19,21 +19,19 @@ export function requestHost() {
   return headers().get("host");
 }
 
-export const getUser = cache(async () => {
-  if (!isSupabaseConfigured()) return null;
-  const { data } = await createClient().auth.getUser();
-  return data.user ?? null;
+const getAuth = cache(async () => {
+  if (!isSupabaseConfigured()) return { user: null, accessToken: null };
+  return getAuthSession();
 });
+
+export const getUser = cache(async () => (await getAuth()).user);
 
 /** Verified factors and the session's assurance level for the signed-in user. */
 export const getMfaState = cache(async () => {
-  const user = await getUser();
+  const { user, accessToken } = await getAuth();
   if (!user) return null;
-  const {
-    data: { session },
-  } = await createClient().auth.getSession();
   const factors = verifiedTotpFactors(user);
-  const aal = aalFromAccessToken(session?.access_token);
+  const aal = aalFromAccessToken(accessToken);
   return { user, factors, aal, needsChallenge: factors.length > 0 && aal !== "aal2" };
 });
 

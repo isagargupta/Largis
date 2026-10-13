@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { BILLING_BUCKET } from "@/lib/portal/billing";
 import { aalFromAccessToken, verifiedTotpFactors } from "@/lib/portal/mfa";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createClient, getAuthSession, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,20 +20,15 @@ function fileName(base: string) {
  * Billing PDFs live in a private bucket. Row-level security decides whether the caller can see the
  * record; storage policies check again when signing, so the redirect target is valid for a minute only.
  */
-export async function GET(_: Request, { params }: { params: { kind: string; id: string } }) {
+export async function GET(request: Request, { params }: { params: { kind: string; id: string } }) {
   if (!isSupabaseConfigured()) return deny(404, "Not found");
   if ((params.kind !== "invoices" && params.kind !== "contracts") || !UUID.test(params.id)) return deny(404, "Not found");
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, accessToken } = await getAuthSession(supabase);
   if (!user) return deny(401, "Sign in to download this document.");
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const aal = aalFromAccessToken(session?.access_token);
+  const aal = aalFromAccessToken(accessToken);
   const factors = verifiedTotpFactors(user);
   if (factors.length && aal !== "aal2") return deny(403, "Complete two-step verification first.");
 
@@ -77,6 +72,14 @@ export async function GET(_: Request, { params }: { params: { kind: string; id: 
     .from(BILLING_BUCKET)
     .createSignedUrl(path, SIGNED_URL_SECONDS, { download: fileName(name) });
   if (error || !signed?.signedUrl) return deny(404, "The document could not be found.");
+
+  // The mobile app downloads the file itself rather than following a redirect.
+  if (new URL(request.url).searchParams.get("format") === "json") {
+    return NextResponse.json(
+      { ok: true, url: signed.signedUrl, fileName: fileName(name), expiresIn: SIGNED_URL_SECONDS },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   const response = NextResponse.redirect(signed.signedUrl, 303);
   response.headers.set("Cache-Control", "no-store");
