@@ -5,6 +5,7 @@ import { ActiveOrgSwitcher } from "@/components/portal/ActiveOrgSwitcher";
 import { PortalShell, type NavItem } from "@/components/portal/PortalShell";
 import { EmptyState } from "@/components/portal/ui";
 import { UserMenu } from "@/components/portal/UserMenu";
+import { loadChatUnread } from "@/lib/portal/chat";
 import { displayName } from "@/lib/portal/format";
 import { marketingOrigin, portalHref, portalUrl } from "@/lib/portal/hosts";
 import { rolePermissions } from "@/lib/portal/meta";
@@ -42,19 +43,25 @@ export default async function ClientPortalLayout({ children }: { children: React
 
   const active = ctx.active;
   const perms = active ? rolePermissions[active.role] : null;
-  const { count: awaitingReply } = active
-    ? await createClient()
-        .from("support_tickets")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", active.id)
-        .eq("status", "pending_client")
-    : { count: 0 };
+  const messagesPath = portalHref("/app/messages");
+  const [{ count: awaitingReply }, chatUnread] = active
+    ? await Promise.all([
+        createClient()
+          .from("support_tickets")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", active.id)
+          .eq("status", "pending_client"),
+        loadChatUnread(),
+      ])
+    : [{ count: 0 }, new Map<string, number>()];
+  const unreadMessages = active && path !== messagesPath ? chatUnread.get(active.id) ?? 0 : 0;
 
   const nav: NavItem[] = mustEnroll
     ? [{ href: securityPath, label: "Account security", icon: "security" }]
     : [
         { href: portalHref("/app"), label: "Overview", icon: "overview" },
         { href: portalHref("/app/sales-tracker"), label: "Sales Tracker", icon: "sales" },
+        { href: messagesPath, label: "Messages", icon: "messages", count: unreadMessages },
         { href: portalHref("/app/support"), label: "Support", icon: "support", count: awaitingReply ?? 0 },
         { href: portalHref("/app/reports"), label: "Reports", icon: "reports" },
         ...(perms?.canViewBilling ? [{ href: portalHref("/app/billing"), label: "Billing", icon: "billing" as const }] : []),

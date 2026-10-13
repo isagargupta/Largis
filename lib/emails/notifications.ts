@@ -52,6 +52,52 @@ export function ticketReplyEmail(i: {
   return { subject: `[${i.reference}] ${i.subject}`, html, text };
 }
 
+export function chatMessageEmail(i: {
+  audience: "client" | "staff";
+  organizationName: string;
+  senderName: string;
+  body: string;
+  recipientName?: string | null;
+  link: string;
+}) {
+  const greeting = i.recipientName ? `Hello ${i.recipientName.split(" ")[0]},` : "Hello,";
+  const intro =
+    i.audience === "client"
+      ? `${i.senderName} from the Largis team sent you a message:`
+      : `${i.senderName} from ${i.organizationName} sent a message:`;
+  const message = excerpt(i.body);
+
+  const html = layout(`
+    ${eyebrow(i.audience === "client" ? "New message" : `Client chat · ${i.organizationName}`)}
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;">
+      ${i.audience === "client" ? "The Largis team replied" : `New message from ${escapeHtml(i.organizationName)}`}
+    </h1>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">${escapeHtml(greeting)}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4c4f5a;">${escapeHtml(intro)}</p>
+    <div style="margin:0 0 24px;padding:14px 16px;border-left:2px solid #b48e4d;background:#fbfaf6;font-size:15px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(message)}</div>
+    ${button(i.link, i.audience === "client" ? "Open messages" : "Reply in Workspace")}
+    <p style="margin:0;font-size:13px;line-height:1.6;color:#7d7f88;">
+      Reply from the ${i.audience === "client" ? "client portal" : "Largis Workspace"} so the conversation stays in one place.
+    </p>
+  `);
+
+  const text = [
+    greeting,
+    "",
+    intro,
+    "",
+    message,
+    "",
+    `${i.audience === "client" ? "Open messages" : "Reply in Workspace"}: ${i.link}`,
+    "",
+    `— ${siteConfig.name}`,
+  ].join("\n");
+
+  const subject =
+    i.audience === "client" ? `New message from the ${siteConfig.name} team` : `New client message: ${i.organizationName}`;
+  return { subject, html, text };
+}
+
 export function reportPublishedEmail(i: {
   title: string;
   organizationName: string;

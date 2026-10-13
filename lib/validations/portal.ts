@@ -209,6 +209,11 @@ export const ticketReplySchema = z.object({
   nextStatus: blank(z.union([z.enum(ticketStatuses), z.literal("")]).transform((v) => v || null)),
 });
 
+export const chatMessageSchema = z.object({
+  organizationId: uuid,
+  body: z.string().trim().min(1, "Write a message first.").max(4000, "Keep messages under 4,000 characters."),
+});
+
 export const ticketUpdateSchema = z.object({
   id: uuid,
   status: z.enum(ticketStatuses),

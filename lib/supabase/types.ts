@@ -441,6 +441,24 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      chat_messages: {
+        Row: {
+          id: string;
+          organization_id: string;
+          author_id: string | null;
+          author_kind: TicketAuthorKind;
+          body: string;
+        } & Timestamps;
+        Insert: { organization_id: string; body: string };
+        Update: never;
+        Relationships: [];
+      };
+      chat_reads: {
+        Row: { user_id: string; organization_id: string; last_read_at: string };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -463,6 +481,18 @@ export type Database = {
       mark_overdue_invoices: { Args: Record<string, never>; Returns: number };
       lead_values: { Args: { p_org: string }; Returns: { id: string; stage: LeadStage; value_cents: number }[] };
       auth_rate_limit_hit: { Args: { p_bucket: string; p_window_seconds: number; p_max: number }; Returns: boolean };
+      chat_unread_counts: { Args: Record<string, never>; Returns: { organization_id: string; unread: number }[] };
+      chat_conversations: {
+        Args: Record<string, never>;
+        Returns: {
+          organization_id: string;
+          organization_name: string;
+          last_body: string;
+          last_author_kind: TicketAuthorKind;
+          last_at: string;
+        }[];
+      };
+      chat_mark_read: { Args: { p_org: string }; Returns: undefined };
     };
     Enums: {
       org_role: OrgRole;

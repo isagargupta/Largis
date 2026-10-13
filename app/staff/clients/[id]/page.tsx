@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, ExternalLink, FileText } from "lucide-react";
+import { ChevronRight, ExternalLink, FileText, MessagesSquare } from "lucide-react";
 import { ActivityList } from "@/components/portal/ActivityList";
 import { ContractsManager, NewInvoiceButton } from "@/components/portal/BillingForms";
 import { InvoiceList, invoiceListColumns } from "@/components/portal/BillingViews";
@@ -14,6 +14,7 @@ import { TeamManager } from "@/components/portal/TeamManager";
 import { TicketList, ticketListColumns } from "@/components/portal/TicketViews";
 import { EmptyState, PageHeader, Panel, Stat, StatGrid } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { billingToday } from "@/lib/portal/billing";
 import { contractColumns, loadBillingSummary, toContractView, toInvoiceListItem } from "@/lib/portal/billing-data";
 import {
@@ -103,6 +104,12 @@ export default async function ClientPage({
             {org.region && <span className="font-mono text-xs">{org.region}</span>}
             <span className="font-mono text-xs text-ink-subtle">{org.slug}</span>
           </span>
+        }
+        actions={
+          <ButtonLink href={portalHref(`/staff/messages/${org.id}`)} variant="outline" size="sm">
+            <MessagesSquare className="h-4 w-4" />
+            Message
+          </ButtonLink>
         }
       />
 

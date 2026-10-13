@@ -7,6 +7,7 @@ import { displayName } from "@/lib/portal/format";
 import { marketingOrigin, portalHref, portalUrl } from "@/lib/portal/hosts";
 import { activeTicketStatuses, staffRoleLabel, staffRoleScope } from "@/lib/portal/meta";
 import { billingToday } from "@/lib/portal/billing";
+import { loadChatUnread } from "@/lib/portal/chat";
 import {
   getMfaState,
   getProfiles,
@@ -36,9 +37,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (mustEnroll && path !== securityPath) redirect(securityPath);
 
   const supabase = createClient();
-  const [profiles, isClient, { count: newEnquiries }, { count: unassignedTickets }, { count: overdueInvoices }] = await Promise.all([
+  const [profiles, isClient, chatUnread, { count: newEnquiries }, { count: unassignedTickets }, { count: overdueInvoices }] = await Promise.all([
     getProfiles([user.id]),
     hasClientMembership(user.id),
+    loadChatUnread(),
     supabase.from("contact_submissions").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabase
       .from("support_tickets")
@@ -51,11 +53,13 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       .or(`status.eq.overdue,and(status.eq.issued,due_date.lt.${billingToday()})`),
   ]);
   const profile = profiles.get(user.id);
+  const unreadConversations = Array.from(chatUnread.values()).filter((n) => n > 0).length;
 
   const nav: NavItem[] = mustEnroll
     ? [{ href: securityPath, label: "Account security", icon: "security" }]
     : [
         { href: portalHref("/staff"), label: "Dashboard", icon: "overview" },
+        { href: portalHref("/staff/messages"), label: "Messages", icon: "messages", count: unreadConversations },
         { href: portalHref("/staff/support"), label: "Support", icon: "support", count: unassignedTickets ?? 0 },
         { href: portalHref("/staff/delivery"), label: "Delivery", icon: "delivery" },
         { href: portalHref("/staff/billing"), label: "Billing", icon: "billing", count: overdueInvoices ?? 0 },

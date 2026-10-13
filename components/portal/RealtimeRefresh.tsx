@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 
-type Subscription = { table: "support_tickets" | "ticket_messages"; filter?: string };
+type Subscription = { table: "support_tickets" | "ticket_messages" | "chat_messages"; filter?: string };
 
 /**
  * Re-renders the current server page when matching rows change. Row-level security applies to
