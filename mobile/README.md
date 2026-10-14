@@ -12,7 +12,7 @@ npm install
 npm start
 ```
 
-Scan the QR code with Expo Go (iOS or Android). `npm start` runs `expo start --go`: with `expo-dev-client` installed, a plain `npx expo start` targets a development build instead, and Expo Go can't open that QR code. Your phone and Mac must be on the same Wi-Fi; if they aren't, run `npm start -- --tunnel`.
+Scan the QR code with the iPhone Camera app, or from inside Expo Go on Android. `npm start` runs `expo start --go` with `EXPO_NO_REDIRECT_PAGE=1`: because `expo-dev-client` is installed, a plain `npx expo start` targets a development build or shows a "choose an app" page, and Expo Go can't open either. Your phone and Mac must be on the same Wi-Fi; if they aren't, run `npm start -- --tunnel`.
 
 Push notifications need a development or store build (`npm run start:dev`), because Expo Go doesn't support them on Android.
 
