@@ -9,10 +9,12 @@ The app reads data straight from Supabase with the publishable key, so row-level
 ```sh
 cd mobile
 npm install
-npx expo start
+npm start
 ```
 
-Scan the QR code with Expo Go (iOS or Android). Push notifications need a development or store build, because Expo Go doesn't support them on Android.
+Scan the QR code with Expo Go (iOS or Android). `npm start` runs `expo start --go`: with `expo-dev-client` installed, a plain `npx expo start` targets a development build instead, and Expo Go can't open that QR code. Your phone and Mac must be on the same Wi-Fi; if they aren't, run `npm start -- --tunnel`.
+
+Push notifications need a development or store build (`npm run start:dev`), because Expo Go doesn't support them on Android.
 
 To point the app at a local website, set `EXPO_PUBLIC_API_URL`, for example `http://192.168.1.20:3000`.
 
