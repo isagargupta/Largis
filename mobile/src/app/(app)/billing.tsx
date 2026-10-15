@@ -3,7 +3,7 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { useState } from "react";
 import { ActivityIndicator, Linking, Pressable, Text, View } from "react-native";
-import { Badge, Card, Divider, EmptyState, ErrorView, Loading, Notice, Screen, Stat, StatGrid, styles as ui } from "@/components/ui";
+import { Badge, Card, Divider, EmptyState, ErrorView, Loading, Notice, Screen, Stat, StatGrid, useUi } from "@/components/ui";
 import { api } from "@/lib/api";
 import { billingToday, effectiveInvoiceStatus } from "@/lib/billing";
 import { config } from "@/lib/config";
@@ -14,7 +14,7 @@ import { billingCycleLabel, contractStatusMeta, invoiceStatusMeta, serviceLineLa
 import { useActiveOrg } from "@/lib/org";
 import { loadBillingSummary } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
-import { colors } from "@/lib/theme";
+import { useTheme } from "@/lib/theme";
 
 type Kind = "invoices" | "contracts";
 
@@ -26,6 +26,8 @@ function invoiceDateLine(inv: { status: InvoiceStatus; paid_at: string | null; i
 
 export default function BillingScreen() {
   const { org, perms } = useActiveOrg();
+  const ui = useUi();
+  const { colors } = useTheme();
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -102,7 +104,7 @@ export default function BillingScreen() {
   function PdfButton({ kind, id, available, label }: { kind: Kind; id: string; available: boolean; label: string }) {
     if (!available) return <Text style={ui.small}>PDF pending</Text>;
     return downloading === id ? (
-      <ActivityIndicator color={colors.brand} />
+      <ActivityIndicator color={colors.accent} />
     ) : (
       <Pressable
         onPress={() => download(kind, id)}
@@ -112,7 +114,7 @@ export default function BillingScreen() {
         accessibilityLabel={label}
         style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
       >
-        <Ionicons name="download-outline" size={16} color={colors.brand} />
+        <Ionicons name="download-outline" size={16} color={colors.accent} />
         <Text style={ui.link}>PDF</Text>
       </Pressable>
     );

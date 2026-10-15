@@ -3,15 +3,17 @@ import { useFocusEffect } from "expo-router";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { EmptyState, ErrorView, Loading, styles as ui } from "@/components/ui";
+import { AttachButton, AttachmentList, PendingAttachments, useAttachmentUploads } from "@/components/Attachments";
+import { EmptyState, ErrorView, Loading, useUi } from "@/components/ui";
 import { api } from "@/lib/api";
+import { parseAttachments, type Attachment } from "@/lib/attachments";
 import { useAuth } from "@/lib/auth";
 import { loadPeopleNames } from "@/lib/data";
-import type { TicketAuthorKind } from "@/lib/database.types";
+import type { Json, TicketAuthorKind } from "@/lib/database.types";
 import { formatDay } from "@/lib/format";
 import { useActiveOrg } from "@/lib/org";
 import { supabase } from "@/lib/supabase";
-import { colors } from "@/lib/theme";
+import { makeStyles, useTheme } from "@/lib/theme";
 
 const HISTORY = 200;
 const MAX_LENGTH = 4000;
@@ -22,14 +24,26 @@ type Message = {
   authorKind: TicketAuthorKind;
   authorName: string;
   body: string;
+  attachments: Attachment[];
   createdAt: string;
-  pending?: boolean;
 };
 
-type Row = { id: string; author_id: string | null; author_kind: TicketAuthorKind; body: string; created_at: string };
+type Row = { id: string; author_id: string | null; author_kind: TicketAuthorKind; body: string; attachments: Json; created_at: string };
 
 function authorName(names: Map<string, string>, id: string | null, kind: TicketAuthorKind) {
   return (id && names.get(id)) || (kind === "staff" ? "Largis team" : "Former member");
+}
+
+function toMessage(row: Row, names: Map<string, string>): Message {
+  return {
+    id: row.id,
+    authorId: row.author_id,
+    authorKind: row.author_kind,
+    authorName: authorName(names, row.author_id, row.author_kind),
+    body: row.body,
+    attachments: parseAttachments(row.attachments),
+    createdAt: row.created_at,
+  };
 }
 
 const timeFormatter = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -40,25 +54,14 @@ type Thread = { ok: true; messages: Message[]; names: Map<string, string> } | { 
 async function fetchThread(organizationId: string): Promise<Thread> {
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("id, author_id, author_kind, body, created_at")
+    .select("id, author_id, author_kind, body, attachments, created_at")
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(HISTORY);
   if (error) return { ok: false };
   const rows = data ?? [];
   const names = await loadPeopleNames(rows.map((m) => m.author_id));
-  return {
-    ok: true,
-    names,
-    messages: rows.map((m) => ({
-      id: m.id,
-      authorId: m.author_id,
-      authorKind: m.author_kind,
-      authorName: authorName(names, m.author_id, m.author_kind),
-      body: m.body,
-      createdAt: m.created_at,
-    })),
-  };
+  return { ok: true, names, messages: rows.map((m) => toMessage(m, names)) };
 }
 
 export default function MessagesScreen() {
@@ -69,7 +72,11 @@ export default function MessagesScreen() {
 function ChatThread({ organizationId }: { organizationId: string }) {
   const { refreshUnread } = useActiveOrg();
   const { user } = useAuth();
+  const ui = useUi();
+  const s = useStyles();
+  const { colors, scheme } = useTheme();
   const headerHeight = useHeaderHeight();
+  const uploads = useAttachmentUploads(organizationId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [draft, setDraft] = useState("");
@@ -84,7 +91,7 @@ function ChatThread({ organizationId }: { organizationId: string }) {
       setMessages(thread.messages);
       setStatus("ready");
     } else {
-      setStatus((s) => (s === "ready" ? s : "error"));
+      setStatus((st) => (st === "ready" ? st : "error"));
     }
   }, []);
 
@@ -107,14 +114,7 @@ function ChatThread({ organizationId }: { organizationId: string }) {
             const more = await loadPeopleNames([row.author_id]);
             more.forEach((v, k) => names.current.set(k, v));
           }
-          const message: Message = {
-            id: row.id,
-            authorId: row.author_id,
-            authorKind: row.author_kind,
-            authorName: authorName(names.current, row.author_id, row.author_kind),
-            body: row.body,
-            createdAt: row.created_at,
-          };
+          const message = toMessage(row, names.current);
           setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [message, ...prev]));
           if (focused.current) markRead();
         },
@@ -136,16 +136,21 @@ function ChatThread({ organizationId }: { organizationId: string }) {
     }, [markRead, reload]),
   );
 
+  const canSend = Boolean(draft.trim() || uploads.ready.length) && !sending && !uploads.busy;
+
   async function send() {
     const body = draft.trim();
-    if (!body || sending) return;
+    if (!canSend) return;
     setSending(true);
     setSendError(null);
-    const result = await api<{ message: Message }>("/api/mobile/chat", { body: { organizationId, body } });
+    const result = await api<{ message: Message }>("/api/mobile/chat", {
+      body: { organizationId, body, attachments: uploads.ready.map(({ path, name }) => ({ path, name })) },
+    });
     setSending(false);
     if (!result.ok) return setSendError(result.error);
     setDraft("");
-    const sent = result.message;
+    uploads.clear();
+    const sent = { ...result.message, attachments: result.message.attachments ?? [] };
     setMessages((prev) => (prev.some((m) => m.id === sent.id) ? prev : [sent, ...prev]));
   }
 
@@ -166,8 +171,8 @@ function ChatThread({ organizationId }: { organizationId: string }) {
         keyboardDismissMode="interactive"
         ListEmptyComponent={
           <View style={{ transform: [{ scaleY: -1 }], flex: 1, justifyContent: "center" }}>
-            <EmptyState icon="chatbubbles-outline" title={`Message the Largis team`}>
-              Ask a question or share an update. Your account team replies here and you’ll get a notification.
+            <EmptyState icon="chatbubbles-outline" title="Message the Largis team">
+              Ask a question, share an update, or send a screenshot. Your account team replies here and you’ll get a notification.
             </EmptyState>
           </View>
         }
@@ -178,18 +183,25 @@ function ChatThread({ organizationId }: { organizationId: string }) {
           return (
             <View>
               {newDay && <Text style={[ui.small, s.day]}>{formatDay(item.createdAt)}</Text>}
-              <View style={[s.bubbleWrap, mine ? { alignItems: "flex-end" } : { alignItems: "flex-start" }]}>
+              <View style={[s.bubbleWrap, { alignItems: mine ? "flex-end" : "flex-start" }]}>
                 {!mine && (
                   <Text style={[ui.small, { marginBottom: 2 }]}>
                     {item.authorName}
                     {item.authorKind === "staff" ? " · Largis" : ""}
                   </Text>
                 )}
-                <View style={[s.bubble, mine ? s.mine : item.authorKind === "staff" ? s.staff : s.theirs]}>
-                  <Text selectable style={[s.text, mine && { color: colors.white }]}>
-                    {item.body}
-                  </Text>
-                </View>
+                {item.body ? (
+                  <View style={[s.bubble, mine ? s.mine : item.authorKind === "staff" ? s.staff : s.theirs]}>
+                    <Text selectable style={[s.text, mine && s.mineText]}>
+                      {item.body}
+                    </Text>
+                  </View>
+                ) : null}
+                {item.attachments.length > 0 && (
+                  <View style={{ marginTop: item.body ? 4 : 0, maxWidth: "85%" }}>
+                    <AttachmentList items={item.attachments} />
+                  </View>
+                )}
                 <Text style={[ui.small, { marginTop: 2, fontSize: 11 }]}>{timeFormatter.format(new Date(item.createdAt))}</Text>
               </View>
             </View>
@@ -198,61 +210,66 @@ function ChatThread({ organizationId }: { organizationId: string }) {
       />
       {sendError && <Text style={[ui.error, { paddingHorizontal: 16, paddingBottom: 6 }]}>{sendError}</Text>}
       <View style={s.composer}>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder={`Message the Largis team`}
-          placeholderTextColor={colors.inkSubtle}
-          multiline
-          maxLength={MAX_LENGTH}
-          style={s.input}
-          accessibilityLabel="Message"
-        />
-        <Pressable
-          onPress={send}
-          disabled={!draft.trim() || sending}
-          accessibilityRole="button"
-          accessibilityLabel="Send message"
-          style={[s.send, (!draft.trim() || sending) && { opacity: 0.4 }]}
-        >
-          <Ionicons name="arrow-up" size={20} color={colors.white} />
-        </Pressable>
+        <PendingAttachments uploads={uploads} />
+        <View style={s.composerRow}>
+          <AttachButton uploads={uploads} />
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Message the Largis team"
+            placeholderTextColor={colors.inkSubtle}
+            keyboardAppearance={scheme}
+            multiline
+            maxLength={MAX_LENGTH}
+            style={s.input}
+            accessibilityLabel="Message"
+          />
+          <Pressable
+            onPress={send}
+            disabled={!canSend}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
+            style={[s.send, !canSend && { opacity: 0.4 }]}
+          >
+            <Ionicons name="arrow-up" size={20} color={colors.onBrand} />
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   day: { textAlign: "center", marginVertical: 8 },
   bubbleWrap: { maxWidth: "100%" },
   bubble: { maxWidth: "85%", paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14 },
-  mine: { backgroundColor: colors.brand, borderBottomRightRadius: 4 },
-  staff: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderBottomLeftRadius: 4 },
-  theirs: { backgroundColor: colors.paperSoft, borderBottomLeftRadius: 4 },
-  text: { fontSize: 15, lineHeight: 21, color: colors.ink },
+  mine: { backgroundColor: c.brand, borderBottomRightRadius: 4 },
+  mineText: { color: c.onBrand },
+  staff: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderBottomLeftRadius: 4 },
+  theirs: { backgroundColor: c.paperSoft, borderBottomLeftRadius: 4 },
+  text: { fontSize: 15, lineHeight: 21, color: c.ink },
   composer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
     gap: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-    backgroundColor: colors.white,
+    borderTopColor: c.line,
+    backgroundColor: c.surface,
   },
+  composerRow: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
   input: {
     flex: 1,
     maxHeight: 140,
     minHeight: 40,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: c.line,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 10,
     fontSize: 15,
-    color: colors.ink,
-    backgroundColor: colors.paper,
+    color: c.ink,
+    backgroundColor: c.paper,
   },
-  send: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" },
-});
+  send: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.brand, alignItems: "center", justifyContent: "center", marginLeft: 4 },
+}));

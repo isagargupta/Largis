@@ -197,6 +197,7 @@ export type Database = {
           resolved_at: string | null;
           sla_first_response_minutes: number;
           sla_resolution_minutes: number;
+          attachments: Json;
           updated_at: string;
         } & Timestamps;
         Insert: {
@@ -211,6 +212,7 @@ export type Database = {
           assigned_to?: string | null;
           sla_first_response_minutes?: number | null;
           sla_resolution_minutes?: number | null;
+          attachments?: Json;
         };
         Update: {
           subject?: string;
@@ -235,8 +237,9 @@ export type Database = {
           author_kind: TicketAuthorKind;
           body: string;
           internal: boolean;
+          attachments: Json;
         } & Timestamps;
-        Insert: { ticket_id: string; body: string; internal?: boolean };
+        Insert: { ticket_id: string; body: string; internal?: boolean; attachments?: Json };
         Update: never;
         Relationships: [];
       };
@@ -448,8 +451,9 @@ export type Database = {
           author_id: string | null;
           author_kind: TicketAuthorKind;
           body: string;
+          attachments: Json;
         } & Timestamps;
-        Insert: { organization_id: string; body: string };
+        Insert: { organization_id: string; body: string; attachments?: Json };
         Update: never;
         Relationships: [];
       };

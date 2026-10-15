@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { attachmentSummary, parseAttachments } from "@/lib/attachments";
 import { hasVerifiedSender, isEmailConfigured, sendEmail } from "@/lib/email";
 import { ticketReplyEmail } from "@/lib/emails/notifications";
 import { logActivity } from "@/lib/portal/activity";
@@ -53,6 +54,7 @@ export async function createTicket(_: ActionState, formData: FormData): Promise<
     subject: input.subject,
     description: input.description,
     priority: input.priority,
+    attachments: input.attachments,
   };
   if (access.staff) {
     row = {
@@ -109,10 +111,13 @@ export async function replyToTicket(_: ActionState, formData: FormData): Promise
   if (input.internal && !access.staff) return failure("Internal notes are for Largis staff only.");
 
   const supabase = createClient();
-  const { error } = await supabase
+  const { data: inserted, error } = await supabase
     .from("ticket_messages")
-    .insert({ ticket_id: ticket.id, body: input.body, internal: input.internal });
+    .insert({ ticket_id: ticket.id, body: input.body, internal: input.internal, attachments: input.attachments })
+    .select("attachments")
+    .single();
   if (error) return failure(friendlyDbError(error));
+  const preview = input.body || attachmentSummary(parseAttachments(inserted?.attachments));
 
   if (access.staff && input.nextStatus && input.nextStatus !== ticket.status) {
     const { error: statusError } = await supabase
@@ -148,7 +153,7 @@ export async function replyToTicket(_: ActionState, formData: FormData): Promise
         ...ticketReplyEmail({
           reference: ticket.reference,
           subject: ticket.subject,
-          body: input.body,
+          body: preview,
           recipientName: ticket.requester_name,
           agentName: agent?.full_name ?? null,
           link: portalUrl("app", `/app/support/${ticket.id}`, requestHost()),
@@ -162,7 +167,7 @@ export async function replyToTicket(_: ActionState, formData: FormData): Promise
   if (access.staff && !input.internal) {
     await sendPushToUsers([ticket.created_by], {
       title: `Reply on ${ticket.reference}`,
-      body: input.body,
+      body: preview,
       data: { screen: "ticket", id: ticket.id, organizationId: ticket.organization_id },
     });
   }

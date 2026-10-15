@@ -1,3 +1,4 @@
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
@@ -18,10 +19,11 @@ Notifications.setNotificationHandler({
 
 /**
  * Asks for permission and links this device to the signed-in user. Quietly does nothing where push
- * isn't available: simulators, Expo Go on Android, or builds without an EAS project id.
+ * isn't available: simulators, Expo Go, or builds without an EAS project id.
  */
 export async function registerPush() {
   if (!Device.isDevice || !config.projectId) return;
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return;
   try {
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {

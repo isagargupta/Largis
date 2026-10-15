@@ -1,6 +1,7 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api, onApiGate } from "@/lib/api";
+import { clearAppLock } from "@/lib/lock-store";
 import { unregisterPush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 
@@ -68,6 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signingOut.current = true;
     try {
       await unregisterPush();
+      await clearAppLock();
       await supabase.auth.signOut({ scope: "local" });
     } finally {
       signingOut.current = false;

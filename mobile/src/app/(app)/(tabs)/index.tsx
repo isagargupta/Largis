@@ -14,7 +14,7 @@ import {
   Screen,
   Stat,
   StatGrid,
-  styles as ui,
+  useUi,
 } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { getProfiles, loadLeadValues, must, useLoader } from "@/lib/data";
@@ -35,13 +35,15 @@ import { useActiveOrg } from "@/lib/org";
 import { loadBillingSummary, loadSupportStats } from "@/lib/queries";
 import { formatPercent } from "@/lib/sla";
 import { supabase } from "@/lib/supabase";
-import { colors, stageDot } from "@/lib/theme";
+import { stageDot, useTheme } from "@/lib/theme";
 
 const engagementOrder = { active: 0, planning: 1, on_hold: 2, completed: 3 } as const;
 
 export default function HomeScreen() {
   const { org, perms } = useActiveOrg();
   const { user } = useAuth();
+  const ui = useUi();
+  const { colors } = useTheme();
 
   const { data, error, loading, refreshing, refresh } = useLoader(async () => {
     const now = Date.now();
@@ -165,7 +167,12 @@ export default function HomeScreen() {
             {i > 0 && <Divider />}
             <Pressable
               onPress={() => router.navigate({ pathname: "/sales", params: { stage: s } })}
-              style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 11, gap: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`${stageMeta[s].label}: ${data.counts[s]} leads`}
+              style={({ pressed }) => [
+                { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 11, gap: 10 },
+                pressed && ui.pressed,
+              ]}
             >
               <View style={{ width: 10, height: 10, backgroundColor: stageDot[s] }} />
               <Text style={[ui.body, { flex: 1 }]}>{stageMeta[s].label}</Text>
@@ -234,7 +241,11 @@ export default function HomeScreen() {
 
       <Card title="Latest report" action={latestReport ? <LinkText title="All reports" onPress={() => router.push("/reports")} /> : undefined}>
         {latestReport ? (
-          <Pressable onPress={() => router.push(`/reports/${latestReport.id}`)} style={{ padding: 16, gap: 4 }}>
+          <Pressable
+            onPress={() => router.push(`/reports/${latestReport.id}`)}
+            accessibilityRole="button"
+            style={({ pressed }) => [{ padding: 16, gap: 4 }, pressed && ui.pressed]}
+          >
             <Text style={ui.rowTitle}>{latestReport.title}</Text>
             <Text style={ui.small}>
               {[

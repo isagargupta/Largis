@@ -1,19 +1,29 @@
 import { useState } from "react";
 import { Alert, Text, View } from "react-native";
 import { SecurityPanel } from "@/components/SecurityPanel";
-import { Button, Card, Field, Notice, Screen, styles as ui } from "@/components/ui";
+import { Button, Card, Field, Notice, Screen, SwitchRow, useUi } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { config } from "@/lib/config";
+import { useAppLock } from "@/lib/lock";
 import { rolePermissions } from "@/lib/meta";
 import { useOrg } from "@/lib/org";
 
 export default function AccountScreen() {
   const { user, signOut } = useAuth();
   const { orgs } = useOrg();
+  const lock = useAppLock();
+  const ui = useUi();
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lockBusy, setLockBusy] = useState(false);
+
+  async function toggleLock(value: boolean) {
+    setLockBusy(true);
+    await lock.setEnabled(value);
+    setLockBusy(false);
+  }
 
   function deleteAccount() {
     Alert.alert(
@@ -51,6 +61,21 @@ export default function AccountScreen() {
           </View>
         ))}
         <Text style={ui.small}>To change your role or email, contact an owner of your organisation or {config.supportEmail}.</Text>
+      </Card>
+
+      <Card title="App lock">
+        <SwitchRow
+          icon={lock.biometry.icon}
+          title={`Require ${lock.biometry.label}`}
+          subtitle={
+            lock.biometry.available
+              ? "Asked when you open Largis and after a minute away."
+              : "Set up Face ID, fingerprint, or a passcode in your phone’s settings to use this."
+          }
+          value={lock.enabled}
+          onValueChange={toggleLock}
+          disabled={lockBusy || (!lock.biometry.available && !lock.enabled)}
+        />
       </Card>
 
       <SecurityPanel />

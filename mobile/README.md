@@ -14,7 +14,7 @@ npm start
 
 Scan the QR code with the iPhone Camera app, or from inside Expo Go on Android. `npm start` runs `expo start --go` with `EXPO_NO_REDIRECT_PAGE=1`: because `expo-dev-client` is installed, a plain `npx expo start` targets a development build or shows a "choose an app" page, and Expo Go can't open either. Your phone and Mac must be on the same Wi-Fi; if they aren't, run `npm start -- --tunnel`.
 
-Push notifications need a development or store build (`npm run start:dev`), because Expo Go doesn't support them on Android.
+Push notifications need a development or store build (`npm run start:dev`); Expo Go doesn't support them.
 
 To point the app at a local website, set `EXPO_PUBLIC_API_URL`, for example `http://192.168.1.20:3000`.
 
@@ -22,13 +22,13 @@ To point the app at a local website, set `EXPO_PUBLIC_API_URL`, for example `htt
 
 ```sh
 npm run typecheck
-npx expo lint
+npm run lint
 npx expo-doctor
 ```
 
 ## Builds and push notifications
 
-1. Create an Expo account, then run `npx eas-cli@latest init`. Put the project id it prints into `EAS_PROJECT_ID` (an EAS environment variable or your shell). Push registration stays off until this is set.
+1. The app is linked to the EAS project `@sgupta43/largis`; its id is the default in `app.config.ts` (override with `EAS_PROJECT_ID`). Push registration is skipped in Expo Go.
 2. Run `npx eas-cli@latest build --profile production --platform all`. EAS creates the signing credentials, and the APNs key for iOS push.
 3. For Android push, add an FCM V1 service-account key with `npx eas-cli@latest credentials`.
 4. Optional: set `EXPO_ACCESS_TOKEN` on Vercel if you enable enhanced push security in Expo.
@@ -38,6 +38,8 @@ Identifiers: bundle ID and Android package `co.largis.app`, deep-link scheme `la
 ## Store review
 
 Reviewers sign in as `appreview@largis.co` with the fixed code stored in Vercel as `APP_REVIEW_CODE`. No email is sent for that address. It opens the "Northwind Retail (Demo)" organisation with sample data.
+
+Listing text, privacy answers for both stores, and review notes are drafted in [`store/listing.md`](store/listing.md).
 
 ## Icons
 

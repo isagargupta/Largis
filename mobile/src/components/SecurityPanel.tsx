@@ -2,7 +2,7 @@ import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 import { Alert, Linking, Text, View } from "react-native";
 import { SvgXml } from "react-native-svg";
-import { Badge, Button, Card, Divider, Field, Notice, Row, styles as ui } from "@/components/ui";
+import { Badge, Button, Card, Divider, Field, Notice, Row, useUi } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { useOrg } from "@/lib/org";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,7 @@ function svgFromQr(qr: string) {
 export function SecurityPanel() {
   const { factors, refreshUser } = useAuth();
   const { orgs } = useOrg();
+  const ui = useUi();
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -121,14 +122,16 @@ export function SecurityPanel() {
             <Text style={ui.label}>1. Add Largis Venture to your authenticator app</Text>
             <Button title="Open authenticator app" variant="secondary" icon="open-outline" onPress={() => Linking.openURL(enrollment.uri).catch(() => setError("No authenticator app could open the link. Enter the setup key instead."))} />
             {enrollment.qr && (
-              <View style={{ alignItems: "center", padding: 8, backgroundColor: "#fff" }}>
-                <SvgXml xml={enrollment.qr} width={180} height={180} />
+              <View style={{ alignItems: "center", gap: 6 }}>
+                <View style={{ padding: 8, backgroundColor: "#ffffff", borderRadius: 4 }}>
+                  <SvgXml xml={enrollment.qr} width={180} height={180} />
+                </View>
                 <Text style={ui.small}>Or scan this from another device</Text>
               </View>
             )}
             <View style={{ gap: 6 }}>
               <Text style={ui.small}>Setup key</Text>
-              <Text selectable style={[ui.mono, { fontSize: 14, color: "#15171c" }]}>
+              <Text selectable style={[ui.mono, ui.body, { fontFamily: "Menlo", fontSize: 14 }]}>
                 {enrollment.secret}
               </Text>
               <Button

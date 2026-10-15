@@ -28,6 +28,7 @@ export function SubmitButton({
   className,
   name,
   value,
+  disabled,
 }: {
   children: ReactNode;
   pendingLabel?: string;
@@ -37,6 +38,7 @@ export function SubmitButton({
   /** Lets one form offer several submit intents; only the clicked button shows its pending label. */
   name?: string;
   value?: string;
+  disabled?: boolean;
 }) {
   const status = useFormStatus();
   const pending = status.pending && (!name || status.data?.get(name) === value);
@@ -47,8 +49,8 @@ export function SubmitButton({
       value={value}
       variant={variant}
       size={size}
-      disabled={status.pending}
-      aria-disabled={status.pending}
+      disabled={status.pending || disabled}
+      aria-disabled={status.pending || disabled}
       className={className}
     >
       {pending && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_ATTACHMENTS } from "@/lib/attachments";
 import {
   billingCycles,
   contractStatuses,
@@ -35,6 +36,24 @@ const optionalText = (max: number) =>
   );
 const optionalUuid = blank(z.union([uuid, z.literal("")]).transform((v) => v || null));
 const checkbox = z.preprocess((v) => v === "on" || v === "true", z.boolean());
+
+/** Uploaded files as JSON (forms send a string); the database re-checks each one. */
+const attachmentsField = z.preprocess(
+  (v) => {
+    if (v == null || v === "") return [];
+    if (typeof v !== "string") return v;
+    try {
+      return JSON.parse(v);
+    } catch {
+      return null;
+    }
+  },
+  z
+    .array(z.object({ path: z.string().min(1).max(300), name: z.string().trim().min(1).max(200) }), {
+      message: "The attachments could not be read. Remove them and try again.",
+    })
+    .max(MAX_ATTACHMENTS, `Attach up to ${MAX_ATTACHMENTS} files at a time.`),
+);
 
 export const otpSendSchema = z.object({ email: emailField });
 
@@ -200,19 +219,26 @@ export const ticketCreateSchema = z.object({
   requesterName: optionalText(120),
   requesterEmail: optionalEmail,
   assignedTo: optionalUuid,
+  attachments: attachmentsField,
 });
 
-export const ticketReplySchema = z.object({
-  ticketId: uuid,
-  body: z.string().trim().min(1, "Write a reply first.").max(10000, "Keep replies under 10,000 characters."),
-  internal: checkbox,
-  nextStatus: blank(z.union([z.enum(ticketStatuses), z.literal("")]).transform((v) => v || null)),
-});
+export const ticketReplySchema = z
+  .object({
+    ticketId: uuid,
+    body: blank(z.string().trim().max(10000, "Keep replies under 10,000 characters.")),
+    internal: checkbox,
+    nextStatus: blank(z.union([z.enum(ticketStatuses), z.literal("")]).transform((v) => v || null)),
+    attachments: attachmentsField,
+  })
+  .refine((v) => v.body || v.attachments.length, { message: "Write a reply first.", path: ["body"] });
 
-export const chatMessageSchema = z.object({
-  organizationId: uuid,
-  body: z.string().trim().min(1, "Write a message first.").max(4000, "Keep messages under 4,000 characters."),
-});
+export const chatMessageSchema = z
+  .object({
+    organizationId: uuid,
+    body: blank(z.string().trim().max(4000, "Keep messages under 4,000 characters.")),
+    attachments: attachmentsField,
+  })
+  .refine((v) => v.body || v.attachments.length, { message: "Write a message first.", path: ["body"] });
 
 export const ticketUpdateSchema = z.object({
   id: uuid,

@@ -1,12 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Card, Chips, Divider, EmptyState, ErrorView, Loading, Screen, styles as ui } from "@/components/ui";
+import { Card, Chips, Divider, EmptyState, ErrorView, Loading, Screen, useUi } from "@/components/ui";
 import { must, useLoader } from "@/lib/data";
 import { formatDate, formatPeriod } from "@/lib/format";
 import { useActiveOrg } from "@/lib/org";
 import { supabase } from "@/lib/supabase";
-import { colors } from "@/lib/theme";
 
 function reportYear(r: { period_end: string | null; published_at: string | null }) {
   return (r.period_end ?? r.published_at ?? "").slice(0, 4);
@@ -14,6 +13,7 @@ function reportYear(r: { period_end: string | null; published_at: string | null 
 
 export default function ReportsScreen() {
   const { org } = useActiveOrg();
+  const ui = useUi();
   const [engagement, setEngagement] = useState("");
   const [year, setYear] = useState("");
 
@@ -70,7 +70,8 @@ export default function ReportsScreen() {
               {i > 0 && <Divider />}
               <Pressable
                 onPress={() => router.push(`/reports/${r.id}`)}
-                style={({ pressed }) => [{ padding: 16, gap: 4 }, pressed && { backgroundColor: colors.paperSoft }]}
+                accessibilityRole="button"
+                style={({ pressed }) => [{ padding: 16, gap: 4 }, pressed && ui.pressed]}
               >
                 <Text style={ui.rowTitle}>{r.title}</Text>
                 <Text style={ui.small}>

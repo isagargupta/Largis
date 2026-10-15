@@ -3,17 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { AlertCircle, Loader2, MessagesSquare, SendHorizontal } from "lucide-react";
+import { AttachButton, AttachmentList, PendingAttachments, useAttachmentUploads } from "@/components/portal/Attachments";
 import { compactControl } from "@/components/portal/control-styles";
+import { parseAttachments, type Attachment } from "@/lib/attachments";
 import { markChatRead, sendChatMessage } from "@/lib/portal/actions/chat";
 import type { ChatMessageView } from "@/lib/portal/chat";
 import { portalHref } from "@/lib/portal/hosts";
 import { createClient } from "@/lib/supabase/client";
 import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
-import type { TicketAuthorKind } from "@/lib/supabase/types";
+import type { Json, TicketAuthorKind } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 type Audience = "client" | "staff";
-type Pending = { tempId: string; body: string; error?: string };
+type Pending = { tempId: string; body: string; attachments: Attachment[]; error?: string };
 
 const MAX_LENGTH = 4000;
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -84,6 +86,7 @@ export function ChatRoom({
   const [pending, setPending] = useState<Pending[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const uploads = useAttachmentUploads(organizationId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const stickToBottom = useRef(true);
@@ -127,6 +130,7 @@ export function ChatRoom({
             author_id: string | null;
             author_kind: TicketAuthorKind;
             body: string;
+            attachments: Json;
             created_at: string;
           };
           const known = row.author_id ? names[row.author_id] : undefined;
@@ -141,6 +145,7 @@ export function ChatRoom({
                     authorKind: row.author_kind,
                     authorName: known ?? (row.author_kind === "staff" ? "Largis team" : "Team member"),
                     body: row.body,
+                    attachments: parseAttachments(row.attachments),
                     createdAt: row.created_at,
                   },
                 ],
@@ -165,10 +170,14 @@ export function ChatRoom({
     if (el) stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
   };
 
-  async function deliver(body: string, tempId: string) {
+  async function deliver(body: string, attachments: Attachment[], tempId: string) {
     setSending(true);
     stickToBottom.current = true;
-    const result = await sendChatMessage(organizationId, body);
+    const result = await sendChatMessage(
+      organizationId,
+      body,
+      attachments.map(({ path, name }) => ({ path, name })),
+    );
     setSending(false);
     if (result.ok) {
       setPending((prev) => prev.filter((p) => p.tempId !== tempId));
@@ -178,19 +187,23 @@ export function ChatRoom({
     }
   }
 
+  const canSend = Boolean(draft.trim() || uploads.ready.length) && !sending && !uploads.busy;
+
   function submit() {
     const body = draft.trim();
-    if (!body || sending) return;
+    if (!canSend) return;
     const tempId = `pending-${Date.now()}`;
-    setPending((prev) => [...prev, { tempId, body }]);
+    const attachments = uploads.ready;
+    setPending((prev) => [...prev, { tempId, body, attachments }]);
     setDraft("");
-    void deliver(body, tempId);
+    uploads.clear();
+    void deliver(body, attachments, tempId);
     inputRef.current?.focus();
   }
 
   function retry(p: Pending) {
-    setPending((prev) => prev.map((x) => (x.tempId === p.tempId ? { tempId: x.tempId, body: x.body } : x)));
-    void deliver(p.body, p.tempId);
+    setPending((prev) => prev.map((x) => (x.tempId === p.tempId ? { ...x, error: undefined } : x)));
+    void deliver(p.body, p.attachments, p.tempId);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -276,19 +289,22 @@ export function ChatRoom({
                         <time dateTime={m.createdAt}>{timeFormat.format(new Date(m.createdAt))}</time>
                       </p>
                     )}
-                    <p
-                      className={cn(
-                        "max-w-[85%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-relaxed sm:max-w-[70%]",
-                        mine
-                          ? "bg-brand-600 text-white"
-                          : sameSide
-                            ? "border border-brand-100 bg-brand-50 text-ink"
-                            : "border border-line bg-paper text-ink",
-                      )}
-                      title={grouped ? timeFormat.format(new Date(m.createdAt)) : undefined}
-                    >
-                      {m.body}
-                    </p>
+                    {m.body && (
+                      <p
+                        className={cn(
+                          "max-w-[85%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-relaxed sm:max-w-[70%]",
+                          mine
+                            ? "bg-brand-600 text-white"
+                            : sameSide
+                              ? "border border-brand-100 bg-brand-50 text-ink"
+                              : "border border-line bg-paper text-ink",
+                        )}
+                        title={grouped ? timeFormat.format(new Date(m.createdAt)) : undefined}
+                      >
+                        {m.body}
+                      </p>
+                    )}
+                    <AttachmentList items={m.attachments} className={cn("max-w-[85%] sm:max-w-[70%]", m.body && "mt-1.5")} />
                   </div>
                 </li>
               );
@@ -301,7 +317,8 @@ export function ChatRoom({
                     p.error ? "border border-red-200 bg-red-50 text-ink" : "bg-brand-600/70 text-white",
                   )}
                 >
-                  {p.body}
+                  {p.body ||
+                    (p.attachments.length === 1 ? p.attachments[0].name : `${p.attachments.length} files`)}
                 </p>
                 {p.error ? (
                   <p className="mt-1 flex items-center gap-1.5 px-1 text-xs text-red-700">
@@ -337,7 +354,9 @@ export function ChatRoom({
         <label htmlFor={`chat-input-${organizationId}`} className="sr-only">
           Message {counterpartLabel}
         </label>
-        <div className="flex items-end gap-2">
+        <PendingAttachments uploads={uploads} />
+        <div className={cn("flex items-end gap-2", uploads.uploads.length > 0 && "mt-2")}>
+          <AttachButton uploads={uploads} />
           <textarea
             id={`chat-input-${organizationId}`}
             ref={inputRef}
@@ -346,19 +365,27 @@ export function ChatRoom({
             maxLength={MAX_LENGTH}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
+            onPaste={(e) => {
+              if (e.clipboardData.files.length) {
+                e.preventDefault();
+                uploads.add(e.clipboardData.files);
+              }
+            }}
             placeholder={`Message ${counterpartLabel}`}
             className={cn(compactControl, "min-h-[44px] flex-1 resize-none py-2.5 text-[15px] leading-snug")}
           />
           <button
             type="submit"
-            disabled={!draft.trim() || sending}
+            disabled={!canSend}
             aria-label="Send message"
             className="grid h-11 w-11 shrink-0 place-items-center bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
           </button>
         </div>
-        <p className="mt-2 hidden text-xs text-ink-subtle sm:block">Enter to send · Shift + Enter for a new line</p>
+        <p className="mt-2 hidden text-xs text-ink-subtle sm:block">
+          Enter to send · Shift + Enter for a new line · Attach or paste images, PDFs, and Office files up to 10 MB
+        </p>
       </form>
     </section>
   );

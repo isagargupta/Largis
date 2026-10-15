@@ -4,12 +4,13 @@ import { useEffect, useRef } from "react";
 import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SecurityPanel } from "@/components/SecurityPanel";
-import { Button, EmptyState, ErrorView, Loading, Screen, styles as ui } from "@/components/ui";
+import { Button, EmptyState, ErrorView, Loading, Screen, useUi } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { config } from "@/lib/config";
+import { LockProvider } from "@/lib/lock";
 import { OrgProvider, useOrg } from "@/lib/org";
 import { pushTarget, registerPush } from "@/lib/push";
-import { colors } from "@/lib/theme";
+import { useTheme } from "@/lib/theme";
 
 function NotificationRouter() {
   const { orgs, setActive } = useOrg();
@@ -35,6 +36,8 @@ function NotificationRouter() {
 function Gate() {
   const { loading, error, orgs, mustEnrollFor, reload } = useOrg();
   const { signOut, user } = useAuth();
+  const { colors } = useTheme();
+  const ui = useUi();
 
   if (loading) return <Loading />;
   if (error && !orgs.length) return <ErrorView message={error} onRetry={reload} />;
@@ -75,7 +78,7 @@ function Gate() {
       <NotificationRouter />
       <Stack
         screenOptions={{
-          headerTintColor: colors.brand,
+          headerTintColor: colors.accent,
           headerTitleStyle: { color: colors.ink },
           headerStyle: { backgroundColor: colors.paper },
           headerShadowVisible: false,
@@ -90,6 +93,8 @@ function Gate() {
         <Stack.Screen name="reports/index" options={{ title: "Reports" }} />
         <Stack.Screen name="reports/[id]" options={{ title: "Report" }} />
         <Stack.Screen name="billing" options={{ title: "Billing" }} />
+        <Stack.Screen name="team" options={{ title: "Team" }} />
+        <Stack.Screen name="invite" options={{ title: "Invite someone", presentation: "modal" }} />
         <Stack.Screen name="account" options={{ title: "Account" }} />
       </Stack>
     </>
@@ -102,8 +107,10 @@ export default function AppLayout() {
   }, []);
 
   return (
-    <OrgProvider>
-      <Gate />
-    </OrgProvider>
+    <LockProvider>
+      <OrgProvider>
+        <Gate />
+      </OrgProvider>
+    </LockProvider>
   );
 }

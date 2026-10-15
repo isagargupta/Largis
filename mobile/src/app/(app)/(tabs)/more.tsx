@@ -2,16 +2,43 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Constants from "expo-constants";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { Alert, Linking, Text, View } from "react-native";
-import { Card, Divider, Row, Screen, styles as ui } from "@/components/ui";
+import { ActionSheetIOS, Alert, Linking, Platform, Text, View } from "react-native";
+import { Card, Divider, Row, Screen, useUi } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { config } from "@/lib/config";
 import { useOrg } from "@/lib/org";
-import { colors } from "@/lib/theme";
+import { useTheme, type ThemePreference } from "@/lib/theme";
+
+const appearanceLabel: Record<ThemePreference, string> = {
+  system: "Match device",
+  light: "Light",
+  dark: "Dark",
+};
 
 export default function MoreScreen() {
   const { orgs, active, perms, setActive, unread } = useOrg();
   const { user, signOut } = useAuth();
+  const ui = useUi();
+  const { colors, preference, setPreference } = useTheme();
+
+  function chooseAppearance() {
+    const options: ThemePreference[] = ["system", "light", "dark"];
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { title: "Appearance", options: [...options.map((o) => appearanceLabel[o]), "Cancel"], cancelButtonIndex: options.length },
+        (index) => {
+          if (index < options.length) setPreference(options[index]);
+        },
+      );
+    } else {
+      Alert.alert(
+        "Appearance",
+        undefined,
+        options.map((o) => ({ text: appearanceLabel[o], onPress: () => setPreference(o) })),
+        { cancelable: true },
+      );
+    }
+  }
 
   return (
     <Screen>
@@ -34,7 +61,7 @@ export default function MoreScreen() {
                 icon="business-outline"
                 title={o.name}
                 subtitle={[o.plan, o.region, unread[o.id] ? `${unread[o.id]} unread` : null].filter(Boolean).join(" · ") || undefined}
-                right={o.id === active?.id ? <Ionicons name="checkmark" size={20} color={colors.brand} /> : undefined}
+                right={o.id === active?.id ? <Ionicons name="checkmark" size={20} color={colors.accent} /> : undefined}
                 onPress={o.id === active?.id ? undefined : () => setActive(o.id)}
               />
             </View>
@@ -51,7 +78,16 @@ export default function MoreScreen() {
           </>
         )}
         <Divider />
-        <Row icon="person-circle-outline" title="Account and security" onPress={() => router.push("/account")} />
+        <Row
+          icon="people-outline"
+          title="Team"
+          subtitle={perms?.canManageTeam ? "Members, invitations, and roles" : "People with access"}
+          onPress={() => router.push("/team")}
+        />
+        <Divider />
+        <Row icon="person-circle-outline" title="Account and security" subtitle="Profile, app lock, two-step verification" onPress={() => router.push("/account")} />
+        <Divider />
+        <Row icon="contrast-outline" title="Appearance" subtitle={appearanceLabel[preference]} onPress={chooseAppearance} />
       </Card>
 
       <Card>

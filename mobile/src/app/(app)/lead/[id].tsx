@@ -1,7 +1,7 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, Text, View } from "react-native";
-import { Button, Chips, ErrorView, Field, Loading, Notice, Screen, styles as ui } from "@/components/ui";
+import { Button, Chips, ErrorView, Field, Loading, Notice, Screen, useUi } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { getProfiles, leadColumns, loadLeadValues, useLoader } from "@/lib/data";
@@ -63,6 +63,7 @@ function LeadForm({ id, data }: { id: string; data: Loaded }) {
   const isNew = id === "new";
   const { org, perms } = useActiveOrg();
   const { user } = useAuth();
+  const ui = useUi();
   const lead = data.lead;
   const [form, setForm] = useState<Form>(() =>
     lead

@@ -124,6 +124,7 @@ export const legalNav: MenuLink[] = [
   { label: "Terms of Service", href: "/legal/terms" },
   { label: "DPA", href: "/legal/dpa" },
   { label: "Security Statement", href: "/legal/security" },
+  { label: "Delete Your Account", href: "/legal/delete-account" },
 ];
 
 export const serviceInterests = [

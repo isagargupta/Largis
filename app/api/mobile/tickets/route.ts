@@ -18,6 +18,7 @@ export async function POST(request: Request) {
         subject: body.subject,
         description: body.description,
         priority: body.priority ?? "normal",
+        attachments: JSON.stringify(Array.isArray(body.attachments) ? body.attachments : []),
       }),
     );
     return mobileJson({ ok: false, error: state.message ?? "The ticket could not be opened.", fieldErrors: state.fieldErrors }, 400);

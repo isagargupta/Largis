@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { CheckCircle2, Plus, RotateCcw } from "lucide-react";
+import { AttachButton, PendingAttachments, useAttachmentUploads, type AttachmentUploads } from "@/components/portal/Attachments";
 import { Field, FormAlert, Modal, SelectField, SubmitButton, TextareaField } from "@/components/portal/forms";
 import { Button } from "@/components/ui/button";
 import { idleState } from "@/lib/portal/action-state";
@@ -20,6 +21,21 @@ import { formatDuration, isClosedStatus } from "@/lib/portal/sla";
 import type { TicketPriority, TicketStatus } from "@/lib/supabase/types";
 
 export type Option = { id: string; name: string };
+
+function AttachmentsField({ uploads, disabled, error }: { uploads: AttachmentUploads; disabled?: boolean; error?: string }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <AttachButton uploads={uploads} disabled={disabled} className="h-9 w-9" />
+        <p className="text-xs text-ink-subtle">
+          {disabled ? "Choose a client to attach files." : "Attach screenshots, PDFs, or Office files (up to 5, 10 MB each)."}
+        </p>
+      </div>
+      <PendingAttachments uploads={uploads} />
+      {error && <p className="text-xs text-red-700">{error}</p>}
+    </div>
+  );
+}
 
 function withCurrent(options: Option[], currentId: string | null, fallback: string) {
   return currentId && !options.some((o) => o.id === currentId) ? [...options, { id: currentId, name: fallback }] : options;
@@ -81,6 +97,9 @@ function TicketCreateForm({
 }) {
   const [state, action] = useFormState(createTicket, idleState);
   const [priority, setPriority] = useState<TicketPriority>("normal");
+  const [pickedOrg, setPickedOrg] = useState("");
+  const orgId = organizationId ?? (pickedOrg || null);
+  const uploads = useAttachmentUploads(orgId);
   const target = defaultSla[priority];
 
   return (
@@ -89,7 +108,17 @@ function TicketCreateForm({
       {organizationId ? (
         <input type="hidden" name="organizationId" value={organizationId} />
       ) : (
-        <SelectField name="organizationId" label="Client" errors={state.fieldErrors} defaultValue="" required>
+        <SelectField
+          name="organizationId"
+          label="Client"
+          errors={state.fieldErrors}
+          value={pickedOrg}
+          onChange={(e) => {
+            setPickedOrg(e.target.value);
+            uploads.clear();
+          }}
+          required
+        >
           <option value="" disabled>
             Choose a client
           </option>
@@ -127,6 +156,7 @@ function TicketCreateForm({
         maxLength={10000}
         required
       />
+      <AttachmentsField uploads={uploads} disabled={!orgId} error={state.fieldErrors?.attachments} />
       {staff && (
         <div className="grid gap-5 sm:grid-cols-2">
           <SelectField name="channel" label="Received via" defaultValue="email" errors={state.fieldErrors}>
@@ -159,7 +189,9 @@ function TicketCreateForm({
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <SubmitButton pendingLabel="Opening…">{staff ? "Log ticket" : "Open ticket"}</SubmitButton>
+        <SubmitButton pendingLabel="Opening…" disabled={uploads.busy}>
+          {staff ? "Log ticket" : "Open ticket"}
+        </SubmitButton>
       </div>
     </form>
   );
@@ -167,23 +199,28 @@ function TicketCreateForm({
 
 export function TicketReplyForm({
   ticketId,
+  organizationId,
   status,
   staff = false,
 }: {
   ticketId: string;
+  organizationId: string;
   status: TicketStatus;
   staff?: boolean;
 }) {
   const [state, action] = useFormState(replyToTicket, idleState);
   const [internal, setInternal] = useState(false);
+  const uploads = useAttachmentUploads(organizationId);
+  const { clear } = uploads;
   const form = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (state.status === "success") {
       form.current?.reset();
       setInternal(false);
+      clear();
     }
-  }, [state]);
+  }, [state, clear]);
 
   return (
     <form ref={form} action={action} noValidate className="space-y-4">
@@ -197,8 +234,8 @@ export function TicketReplyForm({
         className={internal ? "min-h-[120px] border-amber-300 bg-amber-50/40" : "min-h-[120px]"}
         placeholder={internal ? "Only visible to Largis staff." : undefined}
         hint={!staff && isClosedStatus(status) ? "Replying reopens this ticket." : undefined}
-        required
       />
+      <AttachmentsField uploads={uploads} error={state.fieldErrors?.attachments} />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         {staff ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
@@ -228,7 +265,7 @@ export function TicketReplyForm({
         ) : (
           <span />
         )}
-        <SubmitButton pendingLabel="Sending…" variant={internal ? "dark" : "primary"}>
+        <SubmitButton pendingLabel="Sending…" variant={internal ? "dark" : "primary"} disabled={uploads.busy}>
           {internal ? "Add note" : "Send reply"}
         </SubmitButton>
       </div>

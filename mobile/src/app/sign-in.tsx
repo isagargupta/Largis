@@ -1,17 +1,19 @@
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Logo } from "@/components/Logo";
-import { Button, Field, LinkText, Notice, styles as ui } from "@/components/ui";
+import { Button, Field, LinkText, Notice, useUi } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { config } from "@/lib/config";
-import { colors } from "@/lib/theme";
+import { makeStyles, palettes } from "@/lib/theme";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignInScreen() {
   const { status, sendCode, verifyCode, verifyMfa, signOut } = useAuth();
+  const ui = useUi();
+  const s = useStyles();
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -55,7 +57,7 @@ export default function SignInScreen() {
   const mfa = status === "mfa";
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.night }}>
+    <View style={{ flex: 1, backgroundColor: palettes.dark.night }}>
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
@@ -150,14 +152,14 @@ export default function SignInScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   scroll: { flexGrow: 1, padding: 20, justifyContent: "center", gap: 24 },
   brand: { alignItems: "center", gap: 10 },
-  brandName: { color: colors.white, fontSize: 22, fontWeight: "600", letterSpacing: -0.3 },
+  brandName: { color: "#ffffff", fontSize: 22, fontWeight: "600", letterSpacing: -0.3 },
   brandSub: { color: "#a3a8b8", fontSize: 13, letterSpacing: 1.2, textTransform: "uppercase" },
-  panel: { backgroundColor: colors.paper, borderRadius: 6, padding: 20, gap: 14 },
-  heading: { fontSize: 20, fontWeight: "600", color: colors.ink },
+  panel: { backgroundColor: c.paper, borderRadius: 6, padding: 20, gap: 14 },
+  heading: { fontSize: 20, fontWeight: "600", color: c.ink },
   links: { flexDirection: "row", justifyContent: "center", gap: 24 },
   footer: { alignItems: "center", gap: 10 },
   footerText: { color: "#a3a8b8", fontSize: 12, textAlign: "center" },
-});
+}));

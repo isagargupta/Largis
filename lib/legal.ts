@@ -18,6 +18,10 @@ export const legalDocs: Record<string, LegalDoc> = {
         body: "We collect information you provide directly — such as your name, business email, company, and enquiry details — and limited technical data (IP address, browser type) required to operate and secure our services.",
       },
       {
+        heading: "Mobile app",
+        body: "The Largis app for iOS and Android uses the same account as the client portal. If you allow notifications, we store a push token for your device so we can alert you to new messages, ticket replies, reports, and invoices. Files you attach are stored with your organisation's records. The app does not use advertising or third-party tracking.",
+      },
+      {
         heading: "How we use information",
         body: "We use personal information to respond to enquiries, deliver contracted services, maintain security, and meet legal obligations. We do not sell personal information.",
       },
@@ -27,7 +31,7 @@ export const legalDocs: Record<string, LegalDoc> = {
       },
       {
         heading: "Your rights",
-        body: "Subject to applicable law, including India's Digital Personal Data Protection Act, 2023 and the GDPR where relevant, you may request access, correction, or deletion of your personal data.",
+        body: "Subject to applicable law, including India's Digital Personal Data Protection Act, 2023 and the GDPR where relevant, you may request access, correction, or deletion of your personal data. See Delete Your Account for how to delete your portal account.",
       },
       { heading: "Contact", body: contactLine },
     ],
@@ -76,6 +80,29 @@ export const legalDocs: Record<string, LegalDoc> = {
         body: "We notify affected clients without undue delay, and in any event within 72 hours, of becoming aware of a personal data breach.",
       },
       { heading: "Execution", body: `A countersigned DPA is available on request. ${contactLine}` },
+    ],
+  },
+  "delete-account": {
+    title: "Delete Your Account",
+    summary: "How to delete your Largis client portal account and what happens to your data.",
+    sections: [
+      {
+        heading: "Delete in the Largis app",
+        body: "Open the Largis app for iOS or Android, go to More, then Account, and choose Delete account. Type DELETE to confirm. Your account is removed immediately and you are signed out on that device.",
+      },
+      {
+        heading: "Request deletion by email",
+        body: `If you don't have the app, email ${siteConfig.email} from the address you sign in with and ask us to delete your account. We confirm your identity, delete the account, and reply within 7 days.`,
+      },
+      {
+        heading: "What is deleted",
+        body: "Your sign-in, profile, organisation memberships, two-factor authentication settings, and the push notification tokens for your devices are deleted.",
+      },
+      {
+        heading: "What is kept",
+        body: "Records you created for your organisation, such as chat messages, support tickets, and sales leads, belong to that organisation and stay with it under its agreement with Largis. Invoices and contracts are kept as long as tax and accounting law requires, and audit records of account activity may be kept for security and legal purposes.",
+      },
+      { heading: "Contact", body: contactLine },
     ],
   },
   security: {

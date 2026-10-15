@@ -13,7 +13,7 @@ import {
   Screen,
   Stat,
   StatGrid,
-  styles as ui,
+  useUi,
 } from "@/components/ui";
 import { must, ticketListColumns, useLoader } from "@/lib/data";
 import type { TicketStatus } from "@/lib/database.types";
@@ -23,7 +23,6 @@ import { useActiveOrg } from "@/lib/org";
 import { loadSupportStats, slaBadge } from "@/lib/queries";
 import { formatDuration, formatPercent } from "@/lib/sla";
 import { supabase } from "@/lib/supabase";
-import { colors } from "@/lib/theme";
 
 type Filter = "active" | "all" | TicketStatus;
 
@@ -36,6 +35,7 @@ const filters: { value: Filter; label: string }[] = [
 export default function SupportScreen() {
   const { org, perms } = useActiveOrg();
   const [filter, setFilter] = useState<Filter>("active");
+  const ui = useUi();
 
   const { data, error, loading, refreshing, refresh } = useLoader(async () => {
     const now = Date.now();
@@ -93,7 +93,8 @@ export default function SupportScreen() {
                   {i > 0 && <Divider />}
                   <Pressable
                     onPress={() => router.push(`/ticket/${t.id}`)}
-                    style={({ pressed }) => [{ padding: 16, gap: 6 }, pressed && { backgroundColor: colors.paperSoft }]}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [{ padding: 16, gap: 6 }, pressed && ui.pressed]}
                   >
                     <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                       <Text style={ui.mono}>{t.reference}</Text>

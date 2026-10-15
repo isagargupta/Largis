@@ -1,14 +1,16 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { Share, Text, View } from "react-native";
 import { Markdown } from "@/components/Markdown";
-import { Button, Card, ErrorView, Loading, Screen, styles as ui } from "@/components/ui";
+import { Button, Card, ErrorView, Loading, Screen, useUi } from "@/components/ui";
 import { useLoader } from "@/lib/data";
 import { formatDate, formatPeriod } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
-import { colors } from "@/lib/theme";
+import { useTheme } from "@/lib/theme";
 
 export default function ReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const ui = useUi();
+  const { colors } = useTheme();
 
   const { data, error, loading, refreshing, refresh } = useLoader(async () => {
     const { data: report, error: rError } = await supabase

@@ -69,7 +69,7 @@ export default function LegalPage({ params }: Props) {
           <article className="max-w-3xl lg:col-span-8 lg:col-start-5">
             <h1 className="display-2">{doc.title}</h1>
             <p className="mt-5 text-lg text-ink-muted">{doc.summary}</p>
-            <p className="mt-3 text-sm text-ink-subtle">Last updated: September 1, 2026</p>
+            <p className="mt-3 text-sm text-ink-subtle">Last updated: October 14, 2026</p>
 
             <div className="mt-14 space-y-12">
               {doc.sections.map((section, i) => (

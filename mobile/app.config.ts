@@ -1,15 +1,16 @@
 import type { ExpoConfig } from "expo/config";
 
-const projectId = process.env.EAS_PROJECT_ID;
+const projectId = process.env.EAS_PROJECT_ID ?? "d2522ff9-32a4-4f0d-9fe7-138814983555";
 
 const config: ExpoConfig = {
   name: "Largis",
   slug: "largis",
+  owner: "sgupta43",
   scheme: "largis",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
-  userInterfaceStyle: "light",
+  userInterfaceStyle: "automatic",
   ios: {
     bundleIdentifier: "co.largis.app",
     supportsTablet: true,
@@ -36,13 +37,24 @@ const config: ExpoConfig = {
       { image: "./assets/splash-icon.png", imageWidth: 120, resizeMode: "contain", backgroundColor: "#0b0b0d" },
     ],
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#2f438e" }],
+    ["expo-local-authentication", { faceIDPermission: "Allow Largis to use Face ID to unlock the app." }],
+    [
+      "expo-image-picker",
+      {
+        photosPermission: "Allow Largis to access your photos so you can attach them to messages and tickets.",
+        cameraPermission: "Allow Largis to use the camera so you can attach photos to messages and tickets.",
+        microphonePermission: false,
+      },
+    ],
+    "expo-document-picker",
+    "expo-system-ui",
   ],
   experiments: { typedRoutes: true },
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "https://app.largis.co",
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "https://hnowkywozcoebafhlwgn.supabase.co",
     supabaseKey: process.env.EXPO_PUBLIC_SUPABASE_KEY ?? "sb_publishable_vuo4PyF1dtdaFLgJGCJ6ig_BUE-4QF9",
-    ...(projectId ? { eas: { projectId } } : {}),
+    eas: { projectId },
   },
 };
 

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { LifeBuoy, Lock } from "lucide-react";
+import { AttachmentList } from "@/components/portal/Attachments";
 import { SlaBadge } from "@/components/portal/SlaBadge";
+import type { Attachment } from "@/lib/attachments";
 import { EmptyState } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/portal/format";
@@ -88,6 +90,7 @@ export type ThreadMessage = {
   authorKind: TicketAuthorKind;
   body: string;
   internal: boolean;
+  attachments: Attachment[];
   createdAt: string;
 };
 
@@ -96,7 +99,7 @@ export function TicketThread({
   messages,
   audience,
 }: {
-  opening: { authorName: string; body: string; createdAt: string; channel: string };
+  opening: { authorName: string; body: string; createdAt: string; channel: string; attachments: Attachment[] };
   messages: ThreadMessage[];
   audience: "client" | "staff";
 }) {
@@ -107,6 +110,7 @@ export function TicketThread({
       authorKind: "client",
       body: opening.body,
       internal: false,
+      attachments: opening.attachments,
       createdAt: opening.createdAt,
     },
     ...messages,
@@ -144,7 +148,8 @@ export function TicketThread({
                 <time dateTime={m.createdAt}>{formatDateTime(m.createdAt)}</time>
               </p>
             </div>
-            <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-muted">{m.body}</p>
+            {m.body && <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-ink-muted">{m.body}</p>}
+            <AttachmentList items={m.attachments} className="mt-3" />
           </li>
         );
       })}

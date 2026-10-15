@@ -1,5 +1,6 @@
 "use server";
 
+import { attachmentSummary, parseAttachments } from "@/lib/attachments";
 import { isEmailConfigured, hasVerifiedSender, sendEmail } from "@/lib/email";
 import { chatMessageEmail } from "@/lib/emails/notifications";
 import { friendlyDbError } from "@/lib/portal/action-state";
@@ -20,8 +21,12 @@ export type ChatSendResult = { ok: true; message: ChatMessageView } | { ok: fals
 const QUIET_PERIOD_MS = 10 * 60 * 1000;
 const MAX_CLIENT_RECIPIENTS = 25;
 
-export async function sendChatMessage(organizationId: string, body: string): Promise<ChatSendResult> {
-  const parsed = chatMessageSchema.safeParse({ organizationId, body });
+export async function sendChatMessage(
+  organizationId: string,
+  body: string,
+  attachments: { path: string; name: string }[] = [],
+): Promise<ChatSendResult> {
+  const parsed = chatMessageSchema.safeParse({ organizationId, body, attachments });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "That message can't be sent." };
   const input = parsed.data;
 
@@ -31,10 +36,12 @@ export async function sendChatMessage(organizationId: string, body: string): Pro
   const supabase = createClient();
   const { data, error } = await supabase
     .from("chat_messages")
-    .insert({ organization_id: input.organizationId, body: input.body })
-    .select("id, author_id, author_kind, body, created_at")
+    .insert({ organization_id: input.organizationId, body: input.body, attachments: input.attachments })
+    .select("id, author_id, author_kind, body, attachments, created_at")
     .single();
   if (error || !data) return { ok: false, error: error ? friendlyDbError(error) : "The message could not be sent." };
+  const files = parseAttachments(data.attachments);
+  const preview = data.body || attachmentSummary(files);
 
   await supabase.rpc("chat_mark_read", { p_org: input.organizationId });
 
@@ -47,7 +54,7 @@ export async function sendChatMessage(organizationId: string, body: string): Pro
       messageId: data.id,
       authorKind: data.author_kind,
       createdAt: data.created_at,
-      body: data.body,
+      body: preview,
       senderName,
     });
   } catch (err) {
@@ -56,7 +63,7 @@ export async function sendChatMessage(organizationId: string, body: string): Pro
   if (data.author_kind === "staff") {
     await sendPushToUsers(await orgMemberIds(input.organizationId), {
       title: `${senderName} · Largis`,
-      body: data.body,
+      body: preview,
       data: { screen: "messages", organizationId: input.organizationId },
     });
   }
@@ -69,6 +76,7 @@ export async function sendChatMessage(organizationId: string, body: string): Pro
       authorKind: data.author_kind,
       authorName: senderName,
       body: data.body,
+      attachments: files,
       createdAt: data.created_at,
     },
   };

@@ -1,4 +1,5 @@
 import "server-only";
+import { parseAttachments, type Attachment } from "@/lib/attachments";
 import { loadPeopleNames } from "@/lib/portal/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { TicketAuthorKind } from "@/lib/supabase/types";
@@ -12,6 +13,7 @@ export type ChatMessageView = {
   authorKind: TicketAuthorKind;
   authorName: string;
   body: string;
+  attachments: Attachment[];
   createdAt: string;
 };
 
@@ -23,7 +25,7 @@ export function chatAuthorName(names: Map<string, string>, authorId: string | nu
 export async function loadChatThread(organizationId: string) {
   const { data, error } = await createClient()
     .from("chat_messages")
-    .select("id, author_id, author_kind, body, created_at")
+    .select("id, author_id, author_kind, body, attachments, created_at")
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(CHAT_HISTORY_LIMIT);
@@ -37,6 +39,7 @@ export async function loadChatThread(organizationId: string) {
     authorKind: m.author_kind,
     authorName: chatAuthorName(names, m.author_id, m.author_kind),
     body: m.body,
+    attachments: parseAttachments(m.attachments),
     createdAt: m.created_at,
   }));
   return { messages, names: Object.fromEntries(names), truncated: rows.length === CHAT_HISTORY_LIMIT };

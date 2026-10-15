@@ -6,7 +6,8 @@ export async function POST(request: Request) {
   if ("response" in gate) return gate.response;
 
   const body = await readJson(request);
-  const result = await sendChatMessage(String(body?.organizationId ?? ""), String(body?.body ?? ""));
+  const attachments = Array.isArray(body?.attachments) ? (body.attachments as { path: string; name: string }[]) : [];
+  const result = await sendChatMessage(String(body?.organizationId ?? ""), String(body?.body ?? ""), attachments);
   if (!result.ok) return mobileError(400, result.error);
   return mobileJson({ ok: true, message: result.message });
 }

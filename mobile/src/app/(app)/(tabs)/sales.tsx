@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { Badge, Button, Card, Chips, Divider, EmptyState, ErrorView, Loading, Notice, Screen, styles as ui } from "@/components/ui";
+import { Badge, Button, Card, Chips, Divider, EmptyState, ErrorView, Loading, Notice, Screen, useUi } from "@/components/ui";
 import { useAuth } from "@/lib/auth";
 import { getProfiles, leadColumns, loadLeadValues, must, useLoader } from "@/lib/data";
 import type { LeadStage } from "@/lib/database.types";
@@ -9,13 +9,15 @@ import { displayName, formatCents, formatDate } from "@/lib/format";
 import { openStages, stageMeta, stageOrder } from "@/lib/meta";
 import { useActiveOrg } from "@/lib/org";
 import { supabase } from "@/lib/supabase";
-import { colors, stageDot } from "@/lib/theme";
+import { stageDot, useTheme } from "@/lib/theme";
 
 type StageFilter = "all" | "open" | LeadStage;
 
 export default function SalesScreen() {
   const { org, perms } = useActiveOrg();
   const { user } = useAuth();
+  const ui = useUi();
+  const { colors, scheme } = useTheme();
   const params = useLocalSearchParams<{ stage?: string }>();
   const linkedStage: StageFilter = stageOrder.includes(params.stage as LeadStage) ? (params.stage as LeadStage) : "all";
   // A stage picked here holds until another link from Home arrives with a different stage.
@@ -63,6 +65,7 @@ export default function SalesScreen() {
         onChangeText={setQuery}
         placeholder="Search company, contact, or email"
         placeholderTextColor={colors.inkSubtle}
+        keyboardAppearance={scheme}
         style={ui.input}
         autoCapitalize="none"
         autoCorrect={false}
@@ -100,7 +103,8 @@ export default function SalesScreen() {
                   {i > 0 && <Divider />}
                   <Pressable
                     onPress={() => router.push(`/lead/${l.id}`)}
-                    style={({ pressed }) => [{ padding: 16, gap: 5 }, pressed && { backgroundColor: colors.paperSoft }]}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [{ padding: 16, gap: 5 }, pressed && ui.pressed]}
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <Text style={[ui.rowTitle, { flex: 1 }]} numberOfLines={1}>

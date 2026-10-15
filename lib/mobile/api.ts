@@ -58,6 +58,6 @@ export async function runAction(
   values: Record<string, unknown>,
 ) {
   const state = await action(idleState, toFormData(values));
-  if (state.status === "success") return mobileJson({ ok: true, message: state.message, id: state.id });
+  if (state.status === "success") return mobileJson({ ok: true, message: state.message, id: state.id, link: state.link });
   return mobileJson({ ok: false, error: state.message ?? "Something went wrong.", fieldErrors: state.fieldErrors }, 400);
 }

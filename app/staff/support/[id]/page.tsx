@@ -11,6 +11,7 @@ import { RealtimeRefresh } from "@/components/portal/RealtimeRefresh";
 import { PageHeader, Panel } from "@/components/portal/ui";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { parseAttachments } from "@/lib/attachments";
 import { displayName, formatDateTime } from "@/lib/portal/format";
 import { portalHref } from "@/lib/portal/hosts";
 import { ticketChannelLabel, ticketPriorityMeta, ticketStatusMeta } from "@/lib/portal/meta";
@@ -29,13 +30,13 @@ export default async function StaffTicketPage({ params }: { params: { id: string
     supabase
       .from("support_tickets")
       .select(
-        "id, organization_id, reference, subject, description, priority, status, channel, requester_name, requester_email, created_by, assigned_to, created_at, updated_at, first_response_at, resolved_at, sla_first_response_minutes, sla_resolution_minutes",
+        "id, organization_id, reference, subject, description, priority, status, channel, requester_name, requester_email, created_by, assigned_to, created_at, updated_at, first_response_at, resolved_at, sla_first_response_minutes, sla_resolution_minutes, attachments",
       )
       .eq("id", params.id)
       .maybeSingle(),
     supabase
       .from("ticket_messages")
-      .select("id, author_id, author_kind, body, internal, created_at")
+      .select("id, author_id, author_kind, body, internal, attachments, created_at")
       .eq("ticket_id", params.id)
       .order("created_at", { ascending: true }),
     supabase
@@ -135,6 +136,7 @@ export default async function StaffTicketPage({ params }: { params: { id: string
                 body: ticket.description,
                 createdAt: ticket.created_at,
                 channel: ticketChannelLabel[ticket.channel].toLowerCase(),
+                attachments: parseAttachments(ticket.attachments),
               }}
               messages={thread.map((m) => ({
                 id: m.id,
@@ -142,12 +144,13 @@ export default async function StaffTicketPage({ params }: { params: { id: string
                 authorKind: m.author_kind,
                 body: m.body,
                 internal: m.internal,
+                attachments: parseAttachments(m.attachments),
                 createdAt: m.created_at,
               }))}
             />
           </Panel>
           <Panel title="Respond" bodyClassName="p-4 sm:p-5">
-            <TicketReplyForm ticketId={ticket.id} status={ticket.status} staff />
+            <TicketReplyForm ticketId={ticket.id} organizationId={ticket.organization_id} status={ticket.status} staff />
           </Panel>
         </div>
 
