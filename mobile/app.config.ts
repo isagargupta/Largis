@@ -2,6 +2,13 @@ import type { ExpoConfig } from "expo/config";
 
 const projectId = process.env.EAS_PROJECT_ID ?? "d2522ff9-32a4-4f0d-9fe7-138814983555";
 
+const sentryOrg = process.env.SENTRY_ORG;
+const sentryProject = process.env.SENTRY_PROJECT;
+const sentryUpload: NonNullable<ExpoConfig["plugins"]> =
+  process.env.SENTRY_AUTH_TOKEN && sentryOrg && sentryProject
+    ? [["@sentry/react-native/expo", { url: "https://sentry.io/", organization: sentryOrg, project: sentryProject }]]
+    : [];
+
 const config: ExpoConfig = {
   name: "Largis",
   slug: "largis",
@@ -48,9 +55,13 @@ const config: ExpoConfig = {
     ],
     "expo-document-picker",
     "expo-system-ui",
+    ...sentryUpload,
   ],
   experiments: { typedRoutes: true },
+  runtimeVersion: { policy: "appVersion" },
+  updates: { url: `https://u.expo.dev/${projectId}`, checkAutomatically: "ON_LOAD", fallbackToCacheTimeout: 0 },
   extra: {
+    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? "",
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? "https://app.largis.co",
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? "https://hnowkywozcoebafhlwgn.supabase.co",
     supabaseKey: process.env.EXPO_PUBLIC_SUPABASE_KEY ?? "sb_publishable_vuo4PyF1dtdaFLgJGCJ6ig_BUE-4QF9",

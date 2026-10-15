@@ -4,8 +4,10 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { initSentry, wrapRoot } from "@/lib/sentry";
 import { ThemeProvider, useTheme } from "@/lib/theme";
 
+initSentry();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
@@ -34,7 +36,7 @@ function RootNavigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
@@ -45,3 +47,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default wrapRoot(RootLayout);

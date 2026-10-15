@@ -492,6 +492,8 @@ export type Database = {
       lead_values: { Args: { p_org: string }; Returns: { id: string; stage: LeadStage; value_cents: number }[] };
       auth_rate_limit_hit: { Args: { p_bucket: string; p_window_seconds: number; p_max: number }; Returns: boolean };
       chat_unread_counts: { Args: Record<string, never>; Returns: { organization_id: string; unread: number }[] };
+      attachment_in_use: { Args: { p_path: string }; Returns: boolean };
+      stale_attachments: { Args: { p_older_than?: string; p_limit?: number }; Returns: string[] };
       chat_conversations: {
         Args: Record<string, never>;
         Returns: {

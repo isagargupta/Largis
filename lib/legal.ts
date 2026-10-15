@@ -19,7 +19,15 @@ export const legalDocs: Record<string, LegalDoc> = {
       },
       {
         heading: "Mobile app",
-        body: "The Largis app for iOS and Android uses the same account as the client portal. If you allow notifications, we store a push token for your device so we can alert you to new messages, ticket replies, reports, and invoices. Files you attach are stored with your organisation's records. The app does not use advertising or third-party tracking.",
+        body: "The Largis app for iOS and Android uses the same account as the client portal. If you allow notifications, we store a push token for your device so we can alert you to new messages, ticket replies, reports, and invoices; it is deleted when you sign out. The app asks for camera or photo library access only when you choose to attach a photo, and only the photos you pick are uploaded. If you turn on app lock, Face ID, Touch ID, or your fingerprint is checked by your device's operating system; Largis never receives your biometric data. The app does not use advertising or third-party tracking.",
+      },
+      {
+        heading: "Files you attach",
+        body: "Files attached to messages and support tickets are stored privately with your organisation's records and can be opened only by your organisation's members and the Largis team, through links that expire after a few minutes. Files that are uploaded but never sent are deleted within a day.",
+      },
+      {
+        heading: "Service providers",
+        body: "We use a small number of providers to run the portal and app: Vercel (hosting), Supabase (database, sign-in, and file storage), Resend (email), Expo (push notifications), and Sentry (crash and error reports). Crash reports contain technical details such as the device model, operating system, app version, and the error itself; we do not attach your name or email to them. Each provider processes data only on our instructions.",
       },
       {
         heading: "How we use information",

@@ -153,7 +153,7 @@ export default function SignInScreen() {
 }
 
 const useStyles = makeStyles((c) => ({
-  scroll: { flexGrow: 1, padding: 20, justifyContent: "center", gap: 24 },
+  scroll: { flexGrow: 1, padding: 20, justifyContent: "center", gap: 24, width: "100%", maxWidth: 480, alignSelf: "center" },
   brand: { alignItems: "center", gap: 10 },
   brandName: { color: "#ffffff", fontSize: 22, fontWeight: "600", letterSpacing: -0.3 },
   brandSub: { color: "#a3a8b8", fontSize: 13, letterSpacing: 1.2, textTransform: "uppercase" },

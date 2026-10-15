@@ -69,7 +69,7 @@ The app is for existing Largis clients. People can't create an organisation from
 
 ### App Privacy ("nutrition label")
 
-Tracking: **No**. The app has no advertising, analytics, or third-party tracking SDKs.
+Tracking: **No**. The app has no advertising, analytics, or third-party tracking SDKs. Crash reports go to Sentry without any user identity.
 
 Data linked to the user (all used for **App Functionality** only; none used for tracking, advertising, or analytics):
 
@@ -82,7 +82,13 @@ Data linked to the user (all used for **App Functionality** only; none used for 
 | User Content | Other User Content | Chat messages, documents, sales leads and notes |
 | Identifiers | User ID | Account ID used to load your organisation's data |
 
-Not collected: location, contacts, health, financial info (invoices are shown, but no payment details are entered in the app), browsing history, search history, purchases, diagnostics, sensitive info.
+Data **not linked** to the user:
+
+| Apple category | Data type | Why |
+| --- | --- | --- |
+| Diagnostics | Crash Data | Crash and error reports (Sentry), used for App Functionality |
+
+Not collected: location, contacts, health, financial info (invoices are shown, but no payment details are entered in the app), browsing history, search history, purchases, performance data, sensitive info.
 
 Push notification tokens are stored to deliver notifications and are deleted on sign-out; Apple doesn't require a separate disclosure for them.
 
@@ -118,7 +124,7 @@ Sign-in fields: tick "Sign-in required" and enter the email above; put the code 
 - Does the app collect or share any of the required user data types? **Yes**
 - Is all user data encrypted in transit? **Yes** (HTTPS/TLS everywhere)
 - Do you provide a way for users to request that their data is deleted? **Yes**: in the app (More → Account) and at https://largis.co/legal/delete-account
-- Shared with third parties: **No** (Supabase, Vercel, Expo push, and Resend act as service providers, which Play doesn't count as sharing)
+- Shared with third parties: **No** (Supabase, Vercel, Expo push, Resend, and Sentry act as service providers, which Play doesn't count as sharing)
 
 | Play category | Data type | Collected | Optional? | Purposes |
 | --- | --- | --- | --- | --- |
@@ -129,6 +135,8 @@ Sign-in fields: tick "Sign-in required" and enter the email above; put the code 
 | Photos and videos | Photos | Yes | Optional | App functionality |
 | Files and docs | Files and docs | Yes | Optional | App functionality |
 | Device or other IDs | Device or other IDs (push token) | Yes | Optional | App functionality (notifications) |
+| App info and performance | Crash logs | Yes | Required | Analytics (diagnosing and fixing crashes) |
+| App info and performance | Diagnostics | Yes | Required | Analytics (diagnosing and fixing crashes) |
 
 None of the data is processed ephemerally only, and none is used for advertising or analytics.
 
@@ -145,7 +153,7 @@ None of the data is processed ephemerally only, and none is used for advertising
 
 Use the review account on a light theme, plus one dark-mode shot.
 
-- iPhone 6.9" (1320×2868) and iPad 13" (2064×2752), because the app supports tablets
+- iPhone 6.9" (1320×2868) and iPad 13" (2064×2752), because the app supports tablets (content is centred at a readable width on iPad)
 - Android phone (1080×1920 or larger), plus a 1024×500 feature graphic
 
 Suggested order: Home overview, Messages with an image attachment, a support ticket with service levels, Sales pipeline, Reports, Account with Face ID lock, any screen in dark mode.

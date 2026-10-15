@@ -1,6 +1,15 @@
-/** @type {import('next').NextConfig} */
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+/** Where browser error reports are sent; empty until NEXT_PUBLIC_SENTRY_DSN is set. */
+function sentryOrigins() {
+  try {
+    return [new URL(process.env.NEXT_PUBLIC_SENTRY_DSN ?? "").origin];
+  } catch {
+    return [];
+  }
+}
 
 function supabaseOrigins() {
   try {
@@ -25,7 +34,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${cal.join(" ")}`,
   "font-src 'self' data:",
-  `connect-src 'self' ${[...supabaseOrigins(), ...cal].join(" ")}${isDev ? " ws:" : ""}`,
+  `connect-src 'self' ${[...supabaseOrigins(), ...sentryOrigins(), ...cal].join(" ")}${isDev ? " ws:" : ""}`,
   `frame-src ${cal.join(" ")}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
@@ -45,12 +54,29 @@ const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: { instrumentationHook: true },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
 };
 
-export default nextConfig;
+const sentryUpload = Boolean(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT);
+
+/* Without a DSN the site ships no Sentry code in the browser bundle. */
+export default process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: true,
+      telemetry: false,
+      widenClientFileUpload: true,
+      sourcemaps: { disable: !sentryUpload, deleteSourcemapsAfterUpload: true },
+      release: { create: sentryUpload },
+      bundleSizeOptimizations: { excludeDebugStatements: true, excludeTracing: true },
+    })
+  : nextConfig;

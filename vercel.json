@@ -3,5 +3,6 @@
   "framework": "nextjs",
   "regions": ["bom1"],
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "crons": [{ "path": "/api/cron/attachments", "schedule": "30 21 * * *" }]
 }

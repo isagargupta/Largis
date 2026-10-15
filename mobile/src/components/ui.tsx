@@ -15,7 +15,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import type { Tone } from "@/lib/meta";
-import { makeStyles, useTheme } from "@/lib/theme";
+import { CONTENT_MAX_WIDTH, makeStyles, useTheme } from "@/lib/theme";
 
 export type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -376,7 +376,7 @@ export function Progress({ value }: { value: number }) {
 
 export const useUi = makeStyles((c) => ({
   screen: { flex: 1, backgroundColor: c.paper },
-  screenContent: { padding: 16, gap: 16, paddingBottom: 40 },
+  screenContent: { padding: 16, gap: 16, paddingBottom: 40, width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: c.paper },
   textCenter: { textAlign: "center" },
   eyebrow: { fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", color: c.gold, fontWeight: "600", marginBottom: 6 },

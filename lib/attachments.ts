@@ -102,3 +102,8 @@ export async function uploadAttachment(
   if (error) return { ok: false, error: `${file.name} could not be uploaded. Please try again.` };
   return { ok: true, attachment: { path, name: file.name.slice(0, 200), type, size: file.size } };
 }
+
+/** Deletes a file the user removed before sending. Storage refuses once a message lists it; the daily cleanup catches misses. */
+export function discardAttachment(supabase: ReturnType<typeof createClient>, path: string) {
+  void supabase.storage.from(ATTACHMENT_BUCKET).remove([path]);
+}

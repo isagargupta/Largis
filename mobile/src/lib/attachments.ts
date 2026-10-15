@@ -94,6 +94,11 @@ export async function uploadAttachment(
   }
 }
 
+/** Deletes a file the user removed before sending. Storage refuses once a message lists it; the daily cleanup catches misses. */
+export function discardAttachment(path: string) {
+  void supabase.storage.from(ATTACHMENT_BUCKET).remove([path]);
+}
+
 /** A short-lived link to view or download a file, checked by the website. */
 export async function attachmentUrl(path: string, download = false) {
   const result = await api<{ url: string }>(

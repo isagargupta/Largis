@@ -49,6 +49,9 @@ const dark: Palette = {
 
 export const palettes: Record<Scheme, Palette> = { light, dark };
 
+/** Widest a column of content gets, so screens stay readable on iPad. */
+export const CONTENT_MAX_WIDTH = 760;
+
 export const tones: Record<Scheme, Record<Tone, { fg: string; bg: string }>> = {
   light: {
     neutral: { fg: light.inkMuted, bg: light.paperSoft },

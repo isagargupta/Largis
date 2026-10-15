@@ -13,7 +13,7 @@ import type { Json, TicketAuthorKind } from "@/lib/database.types";
 import { formatDay } from "@/lib/format";
 import { useActiveOrg } from "@/lib/org";
 import { supabase } from "@/lib/supabase";
-import { makeStyles, useTheme } from "@/lib/theme";
+import { CONTENT_MAX_WIDTH, makeStyles, useTheme } from "@/lib/theme";
 
 const HISTORY = 200;
 const MAX_LENGTH = 4000;
@@ -167,7 +167,7 @@ function ChatThread({ organizationId }: { organizationId: string }) {
         inverted
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1 }}
+        contentContainerStyle={s.list}
         keyboardDismissMode="interactive"
         ListEmptyComponent={
           <View style={{ transform: [{ scaleY: -1 }], flex: 1, justifyContent: "center" }}>
@@ -210,29 +210,31 @@ function ChatThread({ organizationId }: { organizationId: string }) {
       />
       {sendError && <Text style={[ui.error, { paddingHorizontal: 16, paddingBottom: 6 }]}>{sendError}</Text>}
       <View style={s.composer}>
-        <PendingAttachments uploads={uploads} />
-        <View style={s.composerRow}>
-          <AttachButton uploads={uploads} />
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Message the Largis team"
-            placeholderTextColor={colors.inkSubtle}
-            keyboardAppearance={scheme}
-            multiline
-            maxLength={MAX_LENGTH}
-            style={s.input}
-            accessibilityLabel="Message"
-          />
-          <Pressable
-            onPress={send}
-            disabled={!canSend}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
-            style={[s.send, !canSend && { opacity: 0.4 }]}
-          >
-            <Ionicons name="arrow-up" size={20} color={colors.onBrand} />
-          </Pressable>
+        <View style={s.composerInner}>
+          <PendingAttachments uploads={uploads} />
+          <View style={s.composerRow}>
+            <AttachButton uploads={uploads} />
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="Message the Largis team"
+              placeholderTextColor={colors.inkSubtle}
+              keyboardAppearance={scheme}
+              multiline
+              maxLength={MAX_LENGTH}
+              style={s.input}
+              accessibilityLabel="Message"
+            />
+            <Pressable
+              onPress={send}
+              disabled={!canSend}
+              accessibilityRole="button"
+              accessibilityLabel="Send message"
+              style={[s.send, !canSend && { opacity: 0.4 }]}
+            >
+              <Ionicons name="arrow-up" size={20} color={colors.onBrand} />
+            </Pressable>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -240,6 +242,7 @@ function ChatThread({ organizationId }: { organizationId: string }) {
 }
 
 const useStyles = makeStyles((c) => ({
+  list: { padding: 16, gap: 10, flexGrow: 1, width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center" },
   day: { textAlign: "center", marginVertical: 8 },
   bubbleWrap: { maxWidth: "100%" },
   bubble: { maxWidth: "85%", paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14 },
@@ -249,13 +252,13 @@ const useStyles = makeStyles((c) => ({
   theirs: { backgroundColor: c.paperSoft, borderBottomLeftRadius: 4 },
   text: { fontSize: 15, lineHeight: 21, color: c.ink },
   composer: {
-    gap: 8,
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: c.line,
     backgroundColor: c.surface,
   },
+  composerInner: { gap: 8, width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center" },
   composerRow: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
   input: {
     flex: 1,

@@ -9,6 +9,7 @@ import {
   attachmentType,
   attachmentTypes,
   attachmentUrl,
+  discardAttachment,
   formatBytes,
   isImageAttachment,
   MAX_ATTACHMENTS,
@@ -49,7 +50,14 @@ export function useAttachmentUploads(organizationId: string) {
     [organizationId, room],
   );
 
-  const remove = useCallback((id: string) => setUploads((prev) => prev.filter((u) => u.id !== id)), []);
+  const remove = useCallback(
+    (id: string) => {
+      const path = uploads.find((u) => u.id === id)?.attachment?.path;
+      if (path) discardAttachment(path);
+      setUploads((prev) => prev.filter((u) => u.id !== id));
+    },
+    [uploads],
+  );
   const clear = useCallback(() => setUploads([]), []);
 
   const ready = uploads.flatMap((u) => (u.status === "done" && u.attachment ? [u.attachment] : []));

@@ -29,11 +29,33 @@ npx expo-doctor
 ## Builds and push notifications
 
 1. The app is linked to the EAS project `@sgupta43/largis`; its id is the default in `app.config.ts` (override with `EAS_PROJECT_ID`). Push registration is skipped in Expo Go.
-2. Run `npx eas-cli@latest build --profile production --platform all`. EAS creates the signing credentials, and the APNs key for iOS push.
+2. From this `mobile/` folder (not the website root), run `npx eas-cli@latest build --profile production --platform all`. EAS creates the signing credentials, and the APNs key for iOS push.
 3. For Android push, add an FCM V1 service-account key with `npx eas-cli@latest credentials`.
 4. Optional: set `EXPO_ACCESS_TOKEN` on Vercel if you enable enhanced push security in Expo.
 
 Identifiers: bundle ID and Android package `co.largis.app`, deep-link scheme `largis://`.
+
+## Instant updates
+
+JavaScript-only fixes ship without a store review through EAS Update. Each build profile listens on its own channel (`development`, `preview`, `production`):
+
+```sh
+npx eas-cli@latest update --channel production --message "Fix ticket list spacing"
+```
+
+Phones download the update in the background and use it on the next launch. Updates only reach builds with the same app `version` (the runtime version follows it), so bump `version` in `app.config.ts` and make a new store build whenever you add a native package, a permission, or a config plugin.
+
+## Crash reports (Sentry)
+
+Reporting is off until a DSN is set, and never runs in development. Create a React Native project in Sentry, then add these on expo.dev → Project → Environment variables (production and preview):
+
+| Variable | Visibility | Purpose |
+| --- | --- | --- |
+| `EXPO_PUBLIC_SENTRY_DSN` | Plain text | Where reports go (public value) |
+| `SENTRY_ORG`, `SENTRY_PROJECT` | Plain text | Your Sentry organisation and project slugs |
+| `SENTRY_AUTH_TOKEN` | Secret | Uploads source maps so stack traces are readable |
+
+The Sentry build plugin only turns on when all three `SENTRY_*` values are present, so builds work without them. After an `eas update`, upload its source maps with `npx sentry-expo-upload-sourcemaps dist`.
 
 ## Store review
 
