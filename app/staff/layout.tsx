@@ -37,7 +37,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (mustEnroll && path !== securityPath) redirect(securityPath);
 
   const supabase = createClient();
-  const [profiles, isClient, chatUnread, { count: newEnquiries }, { count: unassignedTickets }, { count: overdueInvoices }] = await Promise.all([
+  const canOnboard = staff.role === "admin" || staff.role === "manager";
+  const [profiles, isClient, chatUnread, { count: newEnquiries }, { count: unassignedTickets }, { count: overdueInvoices }, onboardingWaiting] = await Promise.all([
     getProfiles([user.id]),
     hasClientMembership(user.id),
     loadChatUnread(),
@@ -51,6 +52,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       .from("invoices")
       .select("id", { count: "exact", head: true })
       .or(`status.eq.overdue,and(status.eq.issued,due_date.lt.${billingToday()})`),
+    canOnboard
+      ? supabase.from("employee_onboardings").select("id", { count: "exact", head: true }).eq("status", "submitted")
+      : Promise.resolve({ count: 0 }),
   ]);
   const profile = profiles.get(user.id);
   const unreadConversations = Array.from(chatUnread.values()).filter((n) => n > 0).length;
@@ -60,12 +64,17 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     : [
         { href: portalHref("/staff"), label: "Dashboard", icon: "overview" },
         { href: portalHref("/staff/messages"), label: "Messages", icon: "messages", count: unreadConversations },
+        { href: portalHref("/staff/assistant"), label: "Largis AI", icon: "assistant" },
         { href: portalHref("/staff/support"), label: "Support", icon: "support", count: unassignedTickets ?? 0 },
         { href: portalHref("/staff/delivery"), label: "Delivery", icon: "delivery" },
         { href: portalHref("/staff/billing"), label: "Billing", icon: "billing", count: overdueInvoices ?? 0 },
         { href: portalHref("/staff/enquiries"), label: "Enquiries", icon: "enquiries", count: newEnquiries ?? 0 },
         { href: portalHref("/staff/clients"), label: "Clients", icon: "clients" },
+        { href: portalHref("/staff/knowledge"), label: "Knowledge base", icon: "knowledge" },
         { href: portalHref("/staff/team"), label: "Team", icon: "team" },
+        ...(canOnboard
+          ? [{ href: portalHref("/staff/onboarding"), label: "Onboarding", icon: "onboarding" as const, count: onboardingWaiting.count ?? 0 }]
+          : []),
         ...(staff.role === "admin" ? [{ href: portalHref("/staff/audit"), label: "Audit log", icon: "audit" as const }] : []),
       ];
 

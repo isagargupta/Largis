@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_ATTACHMENTS } from "@/lib/attachments";
+import { MAX_ARTICLE_LENGTH } from "@/lib/knowledge";
 import {
   billingCycles,
   contractStatuses,
@@ -419,6 +420,24 @@ export function slugify(name: string) {
     .slice(0, 60)
     .replace(/-+$/g, "");
 }
+
+export const knowledgeArticleSchema = z.object({
+  id: optionalUuid,
+  title: z.string().trim().min(3, "Give the article a clear title.").max(200, "Keep the title under 200 characters."),
+  category: optionalText(60),
+  body: z
+    .string()
+    .trim()
+    .min(40, "Add a bit more detail so Largis AI has something to work with.")
+    .max(MAX_ARTICLE_LENGTH, `Keep articles under ${MAX_ARTICLE_LENGTH.toLocaleString("en-IN")} characters; split longer ones.`),
+});
+
+export const knowledgeUploadSchema = z.object({
+  name: z.string().trim().min(1).max(200, "Rename the file to something shorter (under 200 characters)."),
+  type: z.string().max(200),
+  size: z.number().int().nonnegative(),
+  category: optionalText(60),
+});
 
 export function fieldErrorsFrom(error: z.ZodError) {
   const out: Record<string, string> = {};

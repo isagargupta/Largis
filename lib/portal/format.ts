@@ -189,6 +189,12 @@ export function describeActivity(row: ActivityRow) {
       return `recorded payment for invoice ${label}`;
     case "invoice.voided":
       return `voided invoice ${label}`;
+    case "knowledge.created":
+      return `added ${label} to the knowledge base`;
+    case "knowledge.updated":
+      return `updated knowledge base entry ${label}`;
+    case "knowledge.deleted":
+      return `removed ${label} from the knowledge base`;
     case "security.staff_mfa_changed":
       return m.required ? "required MFA for all staff" : "made MFA optional for staff";
     case "organization.mfa_changed":

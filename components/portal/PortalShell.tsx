@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   BarChart3,
+  BookOpen,
   Briefcase,
+  ClipboardList,
   Building2,
   Inbox,
   KeyRound,
@@ -15,6 +17,7 @@ import {
   MessagesSquare,
   ReceiptText,
   ScrollText,
+  Sparkles,
   TrendingUp,
   Users,
   X,
@@ -37,6 +40,9 @@ const icons = {
   billing: ReceiptText,
   audit: ScrollText,
   security: KeyRound,
+  assistant: Sparkles,
+  knowledge: BookOpen,
+  onboarding: ClipboardList,
 } satisfies Record<string, LucideIcon>;
 
 export type NavItem = {

@@ -27,7 +27,7 @@ export const legalDocs: Record<string, LegalDoc> = {
       },
       {
         heading: "Service providers",
-        body: "We use a small number of providers to run the portal and app: Vercel (hosting), Supabase (database, sign-in, and file storage), Resend (email), Expo (push notifications), and Sentry (crash and error reports). Crash reports contain technical details such as the device model, operating system, app version, and the error itself; we do not attach your name or email to them. Each provider processes data only on our instructions.",
+        body: "We use a small number of providers to run the portal and app: Vercel (hosting), Supabase (database, sign-in, and file storage), Resend (email), Expo (push notifications), and Sentry (crash and error reports). Crash reports contain technical details such as the device model, operating system, app version, and the error itself; we do not attach your name or email to them. Our team also uses an internal assistant powered by OpenAI to look up our own company information; questions sent to it go to OpenAI's API, which does not use them to train its models. Each provider processes data only on our instructions.",
       },
       {
         heading: "How we use information",

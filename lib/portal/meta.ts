@@ -137,8 +137,8 @@ export const staffRoleLabel: Record<StaffRole, string> = {
 };
 
 export const staffRoleScope: Record<StaffRole, string> = {
-  admin: "All clients, support, delivery, billing, and enquiries, plus the staff team and audit log",
-  manager: "All clients, support, delivery, billing, and enquiries",
+  admin: "All clients, support, delivery, billing, and enquiries, plus the staff team, onboarding, and audit log",
+  manager: "All clients, support, delivery, billing, enquiries, and onboarding",
   agent: "All clients, support, delivery, billing, and enquiries",
 };
 

@@ -149,11 +149,68 @@ None of the data is processed ephemerally only, and none is used for advertising
 - **Permissions:** camera and photos only when attaching files; notifications; biometric for the optional app lock.
 - **Account deletion:** in-app path plus the web URL above (Play requires the web URL).
 
-## Screenshots to capture
+## Screenshots
 
-Use the review account on a light theme, plus one dark-mode shot.
+Rendered at the sizes both stores ask for, using the Northwind Retail (Demo) data. Regenerate with `node store/screenshots/render.mjs` from `mobile/`.
 
-- iPhone 6.9" (1320×2868) and iPad 13" (2064×2752), because the app supports tablets (content is centred at a readable width on iPad)
-- Android phone (1080×1920 or larger), plus a 1024×500 feature graphic
+| Store slot | Size | Files |
+| --- | --- | --- |
+| iPhone 6.9" | 1320×2868 | `screenshots/iphone/` — home, messages, ticket, sales, reports, account, plus `home-dark.png` |
+| iPad 13" | 2064×2752 | `screenshots/ipad/` — home, messages, sales. Required because the app supports iPad. |
+| Android phone | 1080×2400 | `screenshots/android/` — the same six screens, plus `home-dark.png` |
+| Play feature graphic | 1024×500 | `screenshots/feature-graphic.png` |
 
-Suggested order: Home overview, Messages with an image attachment, a support ticket with service levels, Sales pipeline, Reports, Account with Face ID lock, any screen in dark mode.
+Upload the iPhone set first, then the iPad set. On Play, upload the phone set and the feature graphic.
+
+## Content rating questionnaires
+
+Answer every frequency with **None**, and every yes/no below as written. Both questionnaires then land on 4+ / Everyone, or Play's IARC equivalent (typically Everyone or 3+).
+
+### Apple age rating
+
+| Question | Answer |
+| --- | --- |
+| Cartoon or fantasy violence | None |
+| Realistic violence | None |
+| Prolonged graphic or sadistic realistic violence | None |
+| Profanity or crude humor | None |
+| Mature or suggestive themes | None |
+| Horror or fear themes | None |
+| Medical or treatment information | None |
+| Alcohol, tobacco, or drug use | None |
+| Simulated gambling | None |
+| Sexual content or nudity | None |
+| Graphic sexual content and nudity | None |
+| Contests | None |
+| Unrestricted web access | No |
+| Gambling | No |
+| User-generated content | Yes. Messages and ticket replies are visible only to that client's organisation and the Largis team, not to the public. |
+| Messaging and chat | Yes. Chat is limited to the client's own organisation and Largis staff. |
+| Advertising | No |
+| Age categories / Made for Kids | No. Not directed at children. |
+
+In-app controls: the app has account deletion and an optional Face ID or fingerprint lock. It does not offer parental controls.
+
+### Google Play IARC questionnaire
+
+| Question | Answer |
+| --- | --- |
+| Violence, blood, fear, language, controlled substances, crude humor, sexual content | All **No** / **None** |
+| Gambling, simulated gambling, loot boxes, or paid random items | No |
+| Can users interact or exchange content? | Yes. They message their own organisation and the Largis team. |
+| Do users share their location with other users? | No |
+| Does the app share personal information with other users? | No. Name and email are visible only inside the same organisation. |
+| Digital purchases | No |
+| Ads | No |
+| Does the app contain user-generated content that is publicly accessible? | No |
+| Target age | 18 and over |
+| Designed for children / appeal to children | No |
+
+### Play Data safety, target audience, and ads
+
+Use the data-safety table above. Then:
+
+- Target audience: **18 and over** only. Do not tick any age under 18.
+- Ads: **No**.
+- News: **No**. Government: **No**. Financial features: **None**. Health: **None**.
+- App access: restricted. Instructions: sign in as `appreview@largis.co` and enter the code stored in Vercel as `APP_REVIEW_CODE`. No email is sent.
