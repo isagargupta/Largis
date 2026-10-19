@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Onboarding record" };
 
-export default async function OnboardingRecordPage({ params }: { params: { id: string } }) {
+export default async function OnboardingRecordPage({ params, searchParams }: { params: { id: string }; searchParams: { sent?: string } }) {
   await requireStaff();
   const manager = await onboardingManager();
   if (!manager) {
@@ -28,5 +28,12 @@ export default async function OnboardingRecordPage({ params }: { params: { id: s
   if (!row) notFound();
   const profiles = await getProfiles([row.reviewed_by]);
 
-  return <RecordView row={row} joinUrl={onboardingJoinUrl(row.token)} reviewer={row.reviewed_by ? displayName(profiles.get(row.reviewed_by)) : null} />;
+  const notice =
+    searchParams.sent === "1"
+      ? { tone: "ok" as const, text: `Joining link emailed to ${row.invite_email}.` }
+      : searchParams.sent === "0"
+        ? { tone: "warn" as const, text: `The link is ready. The email to ${row.invite_email} could not be sent, so copy it below.` }
+        : null;
+
+  return <RecordView row={row} joinUrl={onboardingJoinUrl(row.token)} reviewer={row.reviewed_by ? displayName(profiles.get(row.reviewed_by)) : null} notice={notice} />;
 }

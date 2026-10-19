@@ -34,7 +34,17 @@ const statusMeta: Record<OnboardingStatus, { label: string; tone: "brand" | "suc
   revoked: { label: "Link revoked", tone: "danger" },
 };
 
-export function RecordView({ row, joinUrl, reviewer }: { row: Row; joinUrl: string; reviewer: string | null }) {
+export function RecordView({
+  row,
+  joinUrl,
+  reviewer,
+  notice,
+}: {
+  row: Row;
+  joinUrl: string;
+  reviewer: string | null;
+  notice?: { tone: "ok" | "warn"; text: string } | null;
+}) {
   const submitted = Boolean(row.full_name);
   const expired = row.status === "open" && new Date(row.expires_at).getTime() <= Date.now();
   const meta = expired ? { label: "Link expired", tone: "warning" as const } : statusMeta[row.status];
@@ -59,6 +69,15 @@ export function RecordView({ row, joinUrl, reviewer }: { row: Row; joinUrl: stri
         }
       />
 
+      {notice ? (
+        <div
+          role="status"
+          className={notice.tone === "ok" ? "border-l-2 border-emerald-600 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" : "border-l-2 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-950"}
+        >
+          {notice.text}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <Badge tone={meta.tone}>{meta.label}</Badge>
         <span className="text-sm text-ink-muted">{row.designation ?? "Role not set"}</span>
@@ -71,7 +90,7 @@ export function RecordView({ row, joinUrl, reviewer }: { row: Row; joinUrl: stri
             <p>
               {expired
                 ? "Renew it before sending it again. The employee can't open an expired link."
-                : `Send this to ${row.invite_email ?? "the employee"}. It works until ${formatWhen(row.expires_at)}, and it stops showing the form after they submit.`}
+                : `Emailed to ${row.invite_email ?? "the employee"}. It works until ${formatWhen(row.expires_at)}, and it stops showing the form after they submit.`}
             </p>
             {!expired && <ShareLink link={joinUrl} />}
           </div>

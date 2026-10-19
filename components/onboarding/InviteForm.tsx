@@ -51,7 +51,7 @@ export function InviteForm() {
           ))}
         </SelectField>
       </div>
-      <SubmitButton pendingLabel="Creating link…">Create joining link</SubmitButton>
+      <SubmitButton pendingLabel="Sending the link…">Create link and email it</SubmitButton>
     </form>
   );
 }

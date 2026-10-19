@@ -49,6 +49,14 @@ export function ReviewActions({
           ) : null}
         </div>
       </form>
+      {open && !expired && (
+        <form action={action}>
+          <input type="hidden" name="id" value={id} />
+          <SubmitButton name="intent" value="email" pendingLabel="Sending…" variant="outline" size="sm">
+            Email the link again
+          </SubmitButton>
+        </form>
+      )}
       {open && (
         <div className="flex flex-wrap gap-3">
           <form action={action}>

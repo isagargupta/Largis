@@ -38,7 +38,7 @@ export default async function NewOnboardingPage() {
       <PageHeader
         eyebrow="Onboarding"
         title="Start a joining form"
-        description="We'll make a private link. The new hire enters their identity, bank account, and marksheets. You can also sit with them and fill it in from the next screen."
+        description="We'll email them a private joining link. They enter their identity, bank account, and marksheets. The link also stays on the next screen if you want to copy it."
       />
       <Panel title="Who is joining?">
         <div className="px-5 py-5">

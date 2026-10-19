@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { onboardingManager } from "@/lib/onboarding/access";
-import { deleteOnboardingObjects, newOnboardingToken } from "@/lib/onboarding/data";
+import { deleteOnboardingObjects, newOnboardingToken, onboardingJoinUrl } from "@/lib/onboarding/data";
+import { deliverJoiningLink } from "@/lib/onboarding/notify";
 import { issuesToFields, onboardingHrSchema, onboardingInviteSchema } from "@/lib/onboarding/schema";
 import { logActivity } from "@/lib/portal/activity";
 import { failure, friendlyDbError, type ActionState } from "@/lib/portal/action-state";
@@ -49,10 +50,16 @@ export async function createOnboarding(_: ActionState, formData: FormData): Prom
       joining_date: parsed.data.joining_date,
       shift_preference: parsed.data.shift_preference as OnboardingShift | null,
     })
-    .select("id")
+    .select("id, token, expires_at")
     .single();
   if (error || !data) return failure(error ? friendlyDbError(error) : "The joining link could not be created.");
 
+  const emailed = await deliverJoiningLink({
+    to: parsed.data.invite_email,
+    name: parsed.data.invite_name,
+    link: onboardingJoinUrl(data.token),
+    expiresAt: data.expires_at,
+  });
   await logActivity(supabase, {
     action: "onboarding.created",
     entity: "onboarding",
@@ -60,7 +67,7 @@ export async function createOnboarding(_: ActionState, formData: FormData): Prom
     metadata: { label: parsed.data.invite_name },
   });
   refresh(data.id);
-  return { status: "success", id: data.id, message: "Joining link ready." };
+  redirect(portalHref(`/staff/onboarding/${data.id}?sent=${emailed === "sent" ? "1" : "0"}`));
 }
 
 export async function updateOnboardingHr(_: ActionState, formData: FormData): Promise<ActionState> {
@@ -71,7 +78,11 @@ export async function updateOnboardingHr(_: ActionState, formData: FormData): Pr
   const intent = String(formData.get("intent") ?? "save");
 
   const supabase = createClient();
-  const { data: row, error: loadError } = await supabase.from("employee_onboardings").select("id, status, full_name, invite_name").eq("id", id).maybeSingle();
+  const { data: row, error: loadError } = await supabase
+    .from("employee_onboardings")
+    .select("id, status, full_name, invite_name, invite_email, token, expires_at")
+    .eq("id", id)
+    .maybeSingle();
   if (loadError) return failure(friendlyDbError(loadError));
   if (!row) return failure("That record could not be found.");
   const label = row.full_name ?? row.invite_name ?? "Employee";
@@ -92,6 +103,22 @@ export async function updateOnboardingHr(_: ActionState, formData: FormData): Pr
     await logActivity(supabase, { action: "onboarding.revoked", entity: "onboarding", entity_id: id, metadata: { label } });
     refresh(id);
     return { status: "success", message: "The joining link has been revoked." };
+  }
+
+  if (intent === "email") {
+    if (row.status !== "open") return failure("The form has already been submitted, so the link is closed.");
+    if (new Date(row.expires_at).getTime() <= Date.now()) return failure("Renew the link, then email it.");
+    if (!row.invite_email) return failure("Add an email address before sending the link.");
+    const emailed = await deliverJoiningLink({
+      to: row.invite_email,
+      name: row.invite_name ?? row.full_name ?? "there",
+      link: onboardingJoinUrl(row.token),
+      expiresAt: row.expires_at,
+    });
+    if (emailed !== "sent") return failure(`The link is ready, but the email to ${row.invite_email} could not be sent. Copy the link from this page.`);
+    await logActivity(supabase, { action: "onboarding.emailed", entity: "onboarding", entity_id: id, metadata: { label } });
+    refresh(id);
+    return { status: "success", message: `Joining link emailed to ${row.invite_email}.` };
   }
 
   if (intent === "extend") {
