@@ -67,7 +67,8 @@ export function readDocuments(value: Json | null | undefined): Partial<Record<On
     const type = item.type;
     const size = item.size;
     if (typeof path !== "string" || typeof name !== "string") continue;
-    out[slot] = { path, name, type: typeof type === "string" ? type : "", size: typeof size === "number" ? size : 0 };
+    const bytes = typeof size === "number" ? size : typeof size === "string" && /^\d+$/.test(size) ? Number(size) : 0;
+    out[slot] = { path, name, type: typeof type === "string" ? type : "", size: bytes };
   }
   return out;
 }

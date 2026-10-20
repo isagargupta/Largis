@@ -142,11 +142,19 @@ async function dropOtherFiles(supabase: Client, id: string, slot: OnboardingSlot
 }
 
 function preparedDocuments(row: Pick<Row, "documents">, hasCollege: boolean) {
-  const documents = { ...readDocuments(row.documents) };
-  const dropCollege = !hasCollege ? documents.college : undefined;
-  if (dropCollege) delete documents.college;
-  const missing = requiredSlots(hasCollege ? "yes" : "no").filter((slot) => !documents[slot]);
-  return { documents, dropCollege, missing };
+  const parsed = readDocuments(row.documents);
+  const dropCollege = !hasCollege ? parsed.college : undefined;
+  const raw = row.documents && typeof row.documents === "object" && !Array.isArray(row.documents) ? { ...row.documents } : {};
+  if (!hasCollege) delete raw.college;
+  const missing = requiredSlots(hasCollege ? "yes" : "no").filter((slot) => !parsed[slot]);
+  return { documents: raw as Json, dropCollege, missing };
+}
+
+function submitFailure(error: { code?: string; message: string }) {
+  console.error("[onboarding] submit failed", error.code, error.message);
+  if (error.code === "23514" && error.message && !/check constraint/i.test(error.message)) return error.message;
+  if (error.code === "42501") return "The form could not be saved. Please try again in a few minutes.";
+  return error.code === "23514" ? "Some details are missing or not in the right format." : friendlyDbError(error);
 }
 
 export async function submitOnboarding(supabase: Client, row: Pick<Row, "id" | "status" | "expires_at" | "documents">, payload: unknown, mode: "public" | "staff") {
@@ -172,26 +180,47 @@ export async function submitOnboarding(supabase: Client, row: Pick<Row, "id" | "
     return failure("Upload the missing documents.", 422, fieldErrors);
   }
 
+  const saved = await saveSubmission(supabase, row, submissionColumns(parsed.data), documents, mode === "public");
+  if (!saved.ok) return saved;
+  if (dropCollege) await supabase.storage.from(ONBOARDING_BUCKET).remove([dropCollege.path]);
+  return { ok: true as const, id: saved.id, name: parsed.data.full_name };
+}
+
+function missingSubmitFunction(error: { code?: string; message: string }) {
+  return error.code === "PGRST202" || /schema cache/i.test(error.message);
+}
+
+async function saveSubmission(
+  supabase: Client,
+  row: Pick<Row, "id" | "status">,
+  data: ReturnType<typeof submissionColumns>,
+  documents: Json,
+  requireOpen: boolean,
+) {
+  const rpc = await supabase.rpc("onboarding_submit", {
+    p_id: row.id,
+    p_patch: data as unknown as Json,
+    p_require_open: requireOpen,
+  });
+  if (!rpc.error && rpc.data) return { ok: true as const, id: rpc.data };
+  if (rpc.error && !missingSubmitFunction(rpc.error)) return failure(submitFailure(rpc.error), 400);
+
   const now = new Date().toISOString();
   const nextStatus: OnboardingStatus = row.status === "reviewed" ? "reviewed" : "submitted";
   let update = supabase
     .from("employee_onboardings")
     .update({
-      ...submissionColumns(parsed.data),
-      documents: documents as Json,
+      ...data,
+      documents,
       status: nextStatus,
       ...(row.status === "open" ? { submitted_at: now } : {}),
     })
     .eq("id", row.id);
-  update = mode === "public" ? update.eq("status", "open") : update.neq("status", "revoked");
-  const { data, error } = await update.select("id, full_name").maybeSingle();
-  if (error) {
-    console.error("[onboarding] submit failed", error.code);
-    return failure(error.code === "23514" ? "Some details are missing or not in the right format." : friendlyDbError(error), 400);
-  }
-  if (!data) return failure("This form was already submitted.", 409);
-  if (dropCollege) await supabase.storage.from(ONBOARDING_BUCKET).remove([dropCollege.path]);
-  return { ok: true as const, id: data.id, name: data.full_name };
+  update = requireOpen ? update.eq("status", "open") : update.neq("status", "revoked");
+  const direct = await update.select("id").maybeSingle();
+  if (direct.error) return failure(submitFailure(direct.error), 400);
+  if (!direct.data) return failure("The form could not be saved. Please submit it again.", 409);
+  return { ok: true as const, id: direct.data.id };
 }
 
 export async function deleteOnboardingObjects(supabase: Client, id: string) {

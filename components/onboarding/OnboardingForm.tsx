@@ -187,7 +187,7 @@ export function OnboardingForm({
         body: JSON.stringify(values),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string; fieldErrors?: Record<string, string> };
-      if (res.status === 409) {
+      if (res.status === 409 && /already submitted/i.test(data.error ?? "")) {
         setDone(true);
         return;
       }

@@ -117,7 +117,8 @@ as $$
     and (doc->>'size')::integer between 1 and 8388608
 $$;
 
-revoke all on function public.onboarding_file_ok(jsonb, uuid, text) from public, anon, authenticated;
+revoke all on function public.onboarding_file_ok(jsonb, uuid, text) from public, anon;
+grant execute on function public.onboarding_file_ok(jsonb, uuid, text) to authenticated, service_role;
 
 create or replace function public.employee_onboardings_guard()
 returns trigger
@@ -183,7 +184,8 @@ begin
 end;
 $$;
 
-revoke all on function public.employee_onboardings_guard() from public, anon, authenticated;
+revoke all on function public.employee_onboardings_guard() from public, anon;
+grant execute on function public.employee_onboardings_guard() to authenticated, service_role;
 
 drop trigger if exists employee_onboardings_guard on public.employee_onboardings;
 create trigger employee_onboardings_guard

@@ -751,6 +751,10 @@ export type Database = {
         Args: { p_id: string; p_slot: string; p_file: Json | null; p_require_open: boolean };
         Returns: boolean;
       };
+      onboarding_submit: {
+        Args: { p_id: string; p_patch: Json; p_require_open: boolean };
+        Returns: string;
+      };
       kb_search: {
         Args: { p_embedding: string; p_query: string; p_count?: number };
         Returns: {
