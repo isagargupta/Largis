@@ -48,7 +48,7 @@ export default function SalesScreen() {
     return (data?.leads ?? []).filter(
       (l) =>
         (stage === "all" || (stage === "open" ? openStages.includes(l.stage) : l.stage === stage)) &&
-        (!q || [l.company, l.contact_name, l.contact_email ?? ""].some((v) => v.toLowerCase().includes(q))),
+        (!q || [l.company ?? "", l.contact_name, l.contact_email ?? ""].some((v) => v.toLowerCase().includes(q))),
     );
   }, [data, stage, query]);
 
@@ -108,7 +108,7 @@ export default function SalesScreen() {
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <Text style={[ui.rowTitle, { flex: 1 }]} numberOfLines={1}>
-                        {l.company}
+                        {l.company?.trim() || l.contact_name}
                       </Text>
                       {l.value_cents !== null && <Text style={ui.body}>{formatCents(l.value_cents)}</Text>}
                     </View>

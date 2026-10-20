@@ -73,6 +73,7 @@ export const tones: Record<Scheme, Record<Tone, { fg: string; bg: string }>> = {
 
 export const stageDot: Record<LeadStage, string> = {
   new: "#a3a3a3",
+  contacted: "#22d3ee",
   qualified: "#0ea5e9",
   proposal: "#4a5fb0",
   negotiation: "#f59e0b",

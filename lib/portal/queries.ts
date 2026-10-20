@@ -68,7 +68,8 @@ export async function loadPeopleNames(ids: (string | null | undefined)[], staffF
 }
 
 /** Lead columns any member may read; deal values come from lead_values() for roles allowed to see them. */
-export const leadColumns = "id, company, contact_name, contact_email, stage, owner_id, source, notes, updated_at";
+export const leadColumns =
+  "id, company, contact_name, contact_email, phone, service_address, job_type, lost_reason, first_contacted_at, stage, owner_id, source, notes, created_at, updated_at";
 
 export async function loadLeadValues(organizationId: string) {
   const { data, error } = await createClient().rpc("lead_values", { p_org: organizationId });

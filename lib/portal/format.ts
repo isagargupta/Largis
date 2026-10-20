@@ -98,6 +98,13 @@ function str(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
+function suggestionLabel(kind: string) {
+  if (kind === "summary") return "summary";
+  if (kind === "reply") return "reply draft";
+  if (kind === "next_action") return "next action";
+  return "suggestion";
+}
+
 function roleLabel(value: unknown) {
   const v = str(value);
   if (v in rolePermissions) return rolePermissions[v as OrgRole].label;
@@ -112,13 +119,35 @@ export function describeActivity(row: ActivityRow) {
     case "lead.created":
       return `added lead ${label}`;
     case "lead.updated": {
+      const stageLabel = str(m.stageLabel);
       const stage = str(m.stage);
+      if (stageLabel) return `moved ${label} to ${stageLabel}`;
       return stage && stage in stageMeta
         ? `moved ${label} to ${stageMeta[stage as LeadStage].label}`
         : `updated lead ${label}`;
     }
     case "lead.deleted":
       return `deleted lead ${label}`;
+    case "task.created":
+      return `added follow-up “${str(m.task)}” on ${label}`;
+    case "task.completed":
+      return `completed follow-up “${str(m.task)}” on ${label}`;
+    case "task.reopened":
+      return `reopened follow-up “${str(m.task)}” on ${label}`;
+    case "task.deleted":
+      return `removed follow-up “${str(m.task)}” on ${label}`;
+    case "suggestion.created":
+      return `drafted a ${suggestionLabel(str(m.kind))} for ${label}`;
+    case "suggestion.approved":
+      return `approved a ${suggestionLabel(str(m.kind))} for ${label}`;
+    case "suggestion.dismissed":
+      return `dismissed a suggestion for ${label}`;
+    case "leads.imported":
+      return `imported ${label}`;
+    case "pipeline.updated":
+      return `updated the ${label}`;
+    case "assignment.updated":
+      return `set lead assignment to ${label}`;
     case "invitation.created":
       return `invited ${label} as ${roleLabel(m.role)}`;
     case "invitation.revoked":

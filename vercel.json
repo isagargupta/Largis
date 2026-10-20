@@ -4,5 +4,8 @@
   "regions": ["bom1"],
   "cleanUrls": true,
   "trailingSlash": false,
-  "crons": [{ "path": "/api/cron/attachments", "schedule": "30 21 * * *" }]
+  "crons": [
+    { "path": "/api/cron/attachments", "schedule": "30 21 * * *" },
+    { "path": "/api/cron/task-reminders", "schedule": "5 * * * *" }
+  ]
 }

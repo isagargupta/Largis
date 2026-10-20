@@ -20,11 +20,13 @@ import type {
 
 export type Tone = "neutral" | "info" | "brand" | "warning" | "success" | "danger";
 
+/** Marketing preview order. The portal uses each organisation's pipeline labels instead. */
 export const stageOrder: LeadStage[] = ["new", "qualified", "proposal", "negotiation", "won", "lost"];
-export const openStages: LeadStage[] = ["new", "qualified", "proposal", "negotiation"];
+export const openStages: LeadStage[] = ["new", "contacted", "qualified", "proposal", "negotiation"];
 
 export const stageMeta: Record<LeadStage, { label: string; tone: Tone }> = {
   new: { label: "New", tone: "neutral" },
+  contacted: { label: "Contacted", tone: "info" },
   qualified: { label: "Qualified", tone: "info" },
   proposal: { label: "Proposal", tone: "brand" },
   negotiation: { label: "Negotiation", tone: "warning" },
@@ -34,6 +36,7 @@ export const stageMeta: Record<LeadStage, { label: string; tone: Tone }> = {
 
 export const stageColor: Record<LeadStage, string> = {
   new: "bg-neutral-400",
+  contacted: "bg-cyan-500",
   qualified: "bg-sky-500",
   proposal: "bg-brand-500",
   negotiation: "bg-amber-500",

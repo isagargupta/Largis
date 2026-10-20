@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { LeadsManager } from "@/components/portal/LeadsManager";
 import { PageHeader } from "@/components/portal/ui";
-import { displayName } from "@/lib/portal/format";
-import { rolePermissions, stageOrder } from "@/lib/portal/meta";
+import { portalHref } from "@/lib/portal/hosts";
+import { rolePermissions } from "@/lib/portal/meta";
 import { leadColumns, loadLeadValues } from "@/lib/portal/queries";
-import { getClientContext, getProfiles } from "@/lib/portal/session";
+import { getClientContext } from "@/lib/portal/session";
+import { loadOrgMembers, loadOverdueLeadIds, loadPipelineStages } from "@/lib/revenue/data";
+import { isLeadStage } from "@/lib/revenue/stages";
 import { createClient } from "@/lib/supabase/server";
 import type { LeadStage } from "@/lib/supabase/types";
 
-export const metadata: Metadata = { title: "Sales Tracker" };
+export const metadata: Metadata = { title: "RevenueDesk" };
 
 export default async function SalesTrackerPage({ searchParams }: { searchParams: { stage?: string } }) {
   const ctx = await getClientContext();
@@ -17,24 +19,21 @@ export default async function SalesTrackerPage({ searchParams }: { searchParams:
 
   const perms = rolePermissions[org.role];
   const supabase = createClient();
-  const [{ data: leads, error }, { data: memberships }, values] = await Promise.all([
+  const [{ data: leads, error }, values, stages, members, overdueLeadIds] = await Promise.all([
     supabase.from("leads").select(leadColumns).eq("organization_id", org.id).order("updated_at", { ascending: false }).limit(2000),
-    supabase.from("memberships").select("user_id").eq("organization_id", org.id),
     perms.canViewValue ? loadLeadValues(org.id) : Promise.resolve(new Map<string, number>()),
+    loadPipelineStages(org.id),
+    loadOrgMembers(org.id),
+    loadOverdueLeadIds(org.id),
   ]);
 
-  const profiles = await getProfiles((memberships ?? []).map((m) => m.user_id));
-  const members = (memberships ?? [])
-    .map((m) => ({ id: m.user_id, name: displayName(profiles.get(m.user_id)) }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
   const rows = (leads ?? []).map((l) => ({ ...l, value_cents: perms.canViewValue ? values.get(l.id) ?? 0 : null }));
-  const initialStage = stageOrder.includes(searchParams.stage as LeadStage) ? (searchParams.stage as LeadStage) : "all";
+  const initialStage: LeadStage | "all" = searchParams.stage && isLeadStage(searchParams.stage) ? searchParams.stage : "all";
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Sales Tracker"
+        eyebrow="RevenueDesk"
         title="Leads and pipeline"
         description={
           <>
@@ -56,6 +55,11 @@ export default async function SalesTrackerPage({ searchParams }: { searchParams:
           members={members}
           perms={perms}
           currentUserId={ctx.user.id}
+          stages={stages}
+          overdueLeadIds={overdueLeadIds}
+          leadBase={portalHref("/app/sales-tracker")}
+          canImport={perms.canEdit && !perms.ownOnly}
+          settingsHref={perms.canManageTeam ? portalHref("/app/sales-tracker/settings") : undefined}
           initialStage={initialStage}
         />
       )}

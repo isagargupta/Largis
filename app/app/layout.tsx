@@ -60,7 +60,7 @@ export default async function ClientPortalLayout({ children }: { children: React
     ? [{ href: securityPath, label: "Account security", icon: "security" }]
     : [
         { href: portalHref("/app"), label: "Overview", icon: "overview" },
-        { href: portalHref("/app/sales-tracker"), label: "Sales Tracker", icon: "sales" },
+        { href: portalHref("/app/sales-tracker"), label: "RevenueDesk", icon: "sales" },
         { href: messagesPath, label: "Messages", icon: "messages", count: unreadMessages },
         { href: portalHref("/app/support"), label: "Support", icon: "support", count: awaitingReply ?? 0 },
         { href: portalHref("/app/reports"), label: "Reports", icon: "reports" },

@@ -1,5 +1,9 @@
 export type OrgRole = "owner" | "admin" | "manager" | "agent" | "viewer";
-export type LeadStage = "new" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
+export type LeadStage = "new" | "contacted" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
+export type AssignmentMode = "manual" | "round_robin" | "fixed";
+export type LeadTaskStatus = "open" | "done";
+export type SuggestionKind = "summary" | "reply" | "next_action";
+export type SuggestionStatus = "pending" | "approved" | "dismissed";
 export type StaffRole = "admin" | "manager" | "agent";
 export type OrgStatus = "active" | "onboarding" | "paused";
 export type EnquiryStatus = "new" | "in_progress" | "closed";
@@ -73,9 +77,15 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          company: string;
+          company: string | null;
           contact_name: string;
           contact_email: string | null;
+          phone: string | null;
+          phone_digits: string | null;
+          service_address: string | null;
+          job_type: string | null;
+          lost_reason: string | null;
+          first_contacted_at: string | null;
           stage: LeadStage;
           owner_id: string | null;
           source: string | null;
@@ -84,9 +94,13 @@ export type Database = {
         } & Timestamps;
         Insert: {
           organization_id: string;
-          company: string;
+          company?: string | null;
           contact_name: string;
           contact_email?: string | null;
+          phone?: string | null;
+          service_address?: string | null;
+          job_type?: string | null;
+          lost_reason?: string | null;
           stage?: LeadStage;
           value_cents?: number;
           owner_id?: string | null;
@@ -94,6 +108,99 @@ export type Database = {
           notes?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
+        Relationships: [];
+      };
+      organization_pipeline_stages: {
+        Row: {
+          organization_id: string;
+          stage: LeadStage;
+          label: string;
+          position: number;
+          hidden: boolean;
+        };
+        Insert: {
+          organization_id: string;
+          stage: LeadStage;
+          label: string;
+          position: number;
+          hidden?: boolean;
+        };
+        Update: { label?: string; position?: number; hidden?: boolean };
+        Relationships: [];
+      };
+      organization_revenue_settings: {
+        Row: {
+          organization_id: string;
+          assignment_mode: AssignmentMode;
+          fixed_owner_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          assignment_mode?: AssignmentMode;
+          fixed_owner_id?: string | null;
+        };
+        Update: { assignment_mode?: AssignmentMode; fixed_owner_id?: string | null };
+        Relationships: [];
+      };
+      lead_tasks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lead_id: string;
+          title: string;
+          owner_id: string | null;
+          due_at: string | null;
+          status: LeadTaskStatus;
+          completed_at: string | null;
+          reminded_at: string | null;
+          created_by: string | null;
+          updated_at: string;
+        } & Timestamps;
+        Insert: {
+          organization_id: string;
+          lead_id: string;
+          title: string;
+          owner_id?: string | null;
+          due_at?: string | null;
+          status?: LeadTaskStatus;
+          created_by?: string | null;
+        };
+        Update: {
+          title?: string;
+          owner_id?: string | null;
+          due_at?: string | null;
+          status?: LeadTaskStatus;
+          reminded_at?: string | null;
+        };
+        Relationships: [];
+      };
+      lead_suggestions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lead_id: string;
+          kind: SuggestionKind;
+          body: string;
+          status: SuggestionStatus;
+          task_id: string | null;
+          decided_by: string | null;
+          created_by: string | null;
+          updated_at: string;
+        } & Timestamps;
+        Insert: {
+          organization_id: string;
+          lead_id: string;
+          kind: SuggestionKind;
+          body: string;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      organization_ai_usage: {
+        Row: { organization_id: string; month: string; count: number };
+        Insert: { organization_id: string; month: string; count?: number };
+        Update: { count?: number };
         Relationships: [];
       };
       contact_submissions: {
@@ -742,6 +849,11 @@ export type Database = {
       replace_invoice_items: { Args: { p_invoice: string; p_items: Json }; Returns: number };
       mark_overdue_invoices: { Args: Record<string, never>; Returns: number };
       lead_values: { Args: { p_org: string }; Returns: { id: string; stage: LeadStage; value_cents: number }[] };
+      next_lead_owner: { Args: { p_org: string }; Returns: string | null };
+      consume_ai_suggestion: { Args: { p_org: string }; Returns: boolean };
+      release_ai_suggestion: { Args: { p_org: string }; Returns: undefined };
+      approve_lead_suggestion: { Args: { p_id: string }; Returns: string | null };
+      dismiss_lead_suggestion: { Args: { p_id: string }; Returns: boolean };
       auth_rate_limit_hit: { Args: { p_bucket: string; p_window_seconds: number; p_max: number }; Returns: boolean };
       chat_unread_counts: { Args: Record<string, never>; Returns: { organization_id: string; unread: number }[] };
       attachment_in_use: { Args: { p_path: string }; Returns: boolean };

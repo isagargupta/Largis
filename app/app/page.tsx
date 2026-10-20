@@ -16,11 +16,18 @@ import {
   rolePermissions,
   serviceLineLabel,
   stageColor,
-  stageMeta,
-  stageOrder,
 } from "@/lib/portal/meta";
 import { loadLeadValues, loadPeopleNames } from "@/lib/portal/queries";
 import { getClientContext, getProfiles } from "@/lib/portal/session";
+import {
+  formatDurationHours,
+  leadsBySource,
+  loadOverdueTaskCount,
+  loadPipelineStages,
+  medianHoursToContact,
+  monthStartUtc,
+} from "@/lib/revenue/data";
+import { visibleStages } from "@/lib/revenue/stages";
 import { formatPercent } from "@/lib/portal/sla";
 import { loadSupportStats } from "@/lib/portal/support";
 import { createClient } from "@/lib/supabase/server";
@@ -49,6 +56,8 @@ export default async function OverviewPage() {
   const supabase = createClient();
   const [
     { data: leads },
+    overdueTasks,
+    stages,
     { count: memberCount },
     { data: activity },
     support,
@@ -59,7 +68,9 @@ export default async function OverviewPage() {
     values,
     billing,
   ] = await Promise.all([
-    supabase.from("leads").select("id, stage").eq("organization_id", org.id).limit(5000),
+    supabase.from("leads").select("id, stage, owner_id, source, created_at, first_contacted_at").eq("organization_id", org.id).limit(5000),
+    loadOverdueTaskCount(org.id),
+    loadPipelineStages(org.id),
     supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("organization_id", org.id),
     supabase
       .from("activity_log")
@@ -102,9 +113,18 @@ export default async function OverviewPage() {
     .slice(0, 10);
 
   const rows = leads ?? [];
-  const counts = Object.fromEntries(stageOrder.map((s) => [s, 0])) as Record<LeadStage, number>;
-  rows.forEach((l) => counts[l.stage]++);
+  const counts = {} as Record<LeadStage, number>;
+  rows.forEach((l) => {
+    counts[l.stage] = (counts[l.stage] ?? 0) + 1;
+  });
+  const pipeline = visibleStages(stages, counts);
   const open = rows.filter((l) => openStages.includes(l.stage));
+  const unassigned = open.filter((l) => !l.owner_id).length;
+  const won = rows.filter((l) => l.stage === "won").length;
+  const lost = rows.filter((l) => l.stage === "lost").length;
+  const winRate = won + lost ? Math.round((won / (won + lost)) * 100) : null;
+  const responseHours = medianHoursToContact(rows, monthStartUtc(new Date(now)));
+  const sources = leadsBySource(rows.map((l) => l.source)).slice(0, 6);
   const valueOf = (id: string) => values.get(id) ?? 0;
   const openValue = open.reduce((sum, l) => sum + valueOf(l.id), 0);
   const wonValue = rows.filter((l) => l.stage === "won").reduce((sum, l) => sum + valueOf(l.id), 0);
@@ -152,7 +172,7 @@ export default async function OverviewPage() {
       )}
 
       <StatGrid>
-        <Stat label="Open leads" value={open.length.toLocaleString("en-US")} hint="New through negotiation" />
+        <Stat label="Open leads" value={open.length.toLocaleString("en-US")} hint="Not won or lost" />
         <Stat
           label="Open pipeline value"
           value={perms.canViewValue ? formatCents(openValue) : <span className="text-ink-subtle">Hidden</span>}
@@ -176,34 +196,66 @@ export default async function OverviewPage() {
         />
       </StatGrid>
 
+      <StatGrid>
+        <Stat label="Unassigned leads" value={unassigned.toLocaleString("en-US")} hint="Open leads with no owner" />
+        <Stat
+          label="Overdue follow-ups"
+          value={overdueTasks.toLocaleString("en-US")}
+          hint="Open tasks past their due time"
+        />
+        <Stat
+          label="Won vs lost"
+          value={winRate === null ? "—" : `${winRate}%`}
+          hint={won + lost ? `${won} won · ${lost} lost` : "No closed leads yet"}
+        />
+        <Stat
+          label="Time to first contact"
+          value={responseHours === null ? "—" : formatDurationHours(responseHours)}
+          hint="Median for leads first contacted this month"
+        />
+      </StatGrid>
+
       <div className="grid gap-6 xl:grid-cols-2">
         <Panel
           title="Pipeline by stage"
-          actions={<PanelLink href={portalHref("/app/sales-tracker")}>Open Sales Tracker</PanelLink>}
+          actions={<PanelLink href={portalHref("/app/sales-tracker")}>Open RevenueDesk</PanelLink>}
           bodyClassName="p-4 sm:p-5"
         >
           <div className="flex h-2 overflow-hidden bg-neutral-100" aria-hidden="true">
-            {stageOrder.map((s) => {
-              const pct = rows.length ? (counts[s] / rows.length) * 100 : 0;
-              return pct > 0 ? <div key={s} className={stageColor[s]} style={{ width: `${pct}%` }} /> : null;
+            {pipeline.map((s) => {
+              const pct = rows.length ? ((counts[s.stage] ?? 0) / rows.length) * 100 : 0;
+              return pct > 0 ? <div key={s.stage} className={stageColor[s.stage]} style={{ width: `${pct}%` }} /> : null;
             })}
           </div>
           <ul className="mt-5 divide-y divide-line border-t border-line">
-            {stageOrder.map((s) => (
-              <li key={s}>
+            {pipeline.map((s) => (
+              <li key={s.stage}>
                 <Link
-                  href={portalHref(`/app/sales-tracker?stage=${s}`)}
+                  href={portalHref(`/app/sales-tracker?stage=${s.stage}`)}
                   className="flex items-center justify-between gap-4 py-3 text-sm hover:bg-paper-soft/70"
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className={`h-2.5 w-2.5 ${stageColor[s]}`} aria-hidden="true" />
-                    {stageMeta[s].label}
+                    <span className={`h-2.5 w-2.5 ${stageColor[s.stage]}`} aria-hidden="true" />
+                    {s.label}
                   </span>
-                  <span className="tabular-nums text-ink-muted">{counts[s]}</span>
+                  <span className="tabular-nums text-ink-muted">{counts[s.stage] ?? 0}</span>
                 </Link>
               </li>
             ))}
           </ul>
+          {sources.length > 0 && (
+            <div className="mt-5 border-t border-line pt-4">
+              <p className="text-xs text-ink-subtle">Leads by source</p>
+              <ul className="mt-2 space-y-1.5">
+                {sources.map((source) => (
+                  <li key={source.source} className="flex items-center justify-between gap-4 text-sm">
+                    <span className="truncate">{source.source}</span>
+                    <span className="tabular-nums text-ink-muted">{source.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {rows.length === 0 && (
             <p className="mt-4 text-sm text-ink-subtle">
               No leads yet.{" "}

@@ -28,13 +28,15 @@ import {
   todayUtc,
 } from "@/lib/portal/format";
 import { portalHref, portalUrl } from "@/lib/portal/hosts";
-import { openStages, orgStatusMeta, reportStatusMeta, stageOrder, staffPermissions } from "@/lib/portal/meta";
+import { openStages, orgStatusMeta, reportStatusMeta, staffPermissions } from "@/lib/portal/meta";
 import { leadColumns, loadLeadValues, loadStaffOptions, loadTeam } from "@/lib/portal/queries";
 import { getProfiles, getUser, requestHost } from "@/lib/portal/session";
+import { loadOrgMembers, loadOverdueLeadIds, loadPipelineStages } from "@/lib/revenue/data";
+import { isLeadStage } from "@/lib/revenue/stages";
 import { formatPercent } from "@/lib/portal/sla";
 import { loadSupportStats } from "@/lib/portal/support";
 import { createClient } from "@/lib/supabase/server";
-import type { LeadStage, OrgStatus } from "@/lib/supabase/types";
+import type { OrgStatus } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Client" };
@@ -491,20 +493,13 @@ async function Leads({
   stage?: string;
 }) {
   const supabase = createClient();
-  const [{ data: leads, error }, { data: memberships }, values] = await Promise.all([
-    supabase
-      .from("leads")
-      .select(leadColumns)
-      .eq("organization_id", organizationId)
-      .order("updated_at", { ascending: false })
-      .limit(1000),
-    supabase.from("memberships").select("user_id").eq("organization_id", organizationId),
+  const [{ data: leads, error }, values, stages, members, overdueLeadIds] = await Promise.all([
+    supabase.from("leads").select(leadColumns).eq("organization_id", organizationId).order("updated_at", { ascending: false }).limit(1000),
     loadLeadValues(organizationId),
+    loadPipelineStages(organizationId),
+    loadOrgMembers(organizationId),
+    loadOverdueLeadIds(organizationId),
   ]);
-  const profiles = await getProfiles((memberships ?? []).map((m) => m.user_id));
-  const members = (memberships ?? [])
-    .map((m) => ({ id: m.user_id, name: displayName(profiles.get(m.user_id)) }))
-    .sort((a, b) => a.name.localeCompare(b.name));
 
   if (error) {
     return (
@@ -522,7 +517,12 @@ async function Leads({
       members={members}
       perms={staffPermissions}
       currentUserId={userId}
-      initialStage={stageOrder.includes(stage as LeadStage) ? (stage as LeadStage) : "all"}
+      stages={stages}
+      overdueLeadIds={overdueLeadIds}
+      leadBase={portalHref(`/staff/clients/${organizationId}/leads`)}
+      canImport
+      settingsHref={portalHref(`/staff/clients/${organizationId}/revenue`)}
+      initialStage={stage && isLeadStage(stage) ? stage : "all"}
     />
   );
 }

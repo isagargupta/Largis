@@ -1,5 +1,5 @@
 export type OrgRole = "owner" | "admin" | "manager" | "agent" | "viewer";
-export type LeadStage = "new" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
+export type LeadStage = "new" | "contacted" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
 export type StaffRole = "admin" | "manager" | "agent";
 export type OrgStatus = "active" | "onboarding" | "paused";
 export type EnquiryStatus = "new" | "in_progress" | "closed";
@@ -64,7 +64,7 @@ export type Database = {
         Row: {
           id: string;
           organization_id: string;
-          company: string;
+          company: string | null;
           contact_name: string;
           contact_email: string | null;
           stage: LeadStage;
@@ -75,7 +75,7 @@ export type Database = {
         } & Timestamps;
         Insert: {
           organization_id: string;
-          company: string;
+          company?: string | null;
           contact_name: string;
           contact_email?: string | null;
           stage?: LeadStage;

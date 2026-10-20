@@ -176,3 +176,19 @@ export function invoiceIssuedEmail(i: {
 
   return { subject: `Invoice ${i.number} from ${siteConfig.name}`, html, text };
 }
+
+export function taskReminderEmail(i: { lead: string; task: string; due: string; link: string; recipientName?: string | null }) {
+  const greeting = i.recipientName ? `Hello ${i.recipientName.split(" ")[0]},` : "Hello,";
+  const html = layout(`
+    ${eyebrow("RevenueDesk")}
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;letter-spacing:-0.02em;">Follow-up due</h1>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;">${escapeHtml(greeting)}</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4c4f5a;">
+      ${escapeHtml(i.task)} for ${escapeHtml(i.lead)} was due ${escapeHtml(i.due)}.
+    </p>
+    ${button(i.link, "Open the lead")}
+    <p style="margin:0;font-size:13px;line-height:1.6;color:#7d7f88;">This reminder is sent once for each follow-up.</p>
+  `);
+  const text = [greeting, "", `${i.task} for ${i.lead} was due ${i.due}.`, "", `Open the lead: ${i.link}`, "", `— ${siteConfig.name}`].join("\n");
+  return { subject: `Follow-up due: ${i.lead}`, html, text };
+}

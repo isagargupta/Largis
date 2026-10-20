@@ -26,7 +26,7 @@ type Form = {
 const blank: Form = { company: "", contactName: "", contactEmail: "", stage: "new", value: "", ownerId: "", source: "", notes: "" };
 
 type Loaded = {
-  lead: { id: string; company: string; contact_name: string; contact_email: string | null; stage: LeadStage; owner_id: string | null; source: string | null; notes: string | null; updated_at: string } | null;
+  lead: { id: string; company: string | null; contact_name: string; contact_email: string | null; stage: LeadStage; owner_id: string | null; source: string | null; notes: string | null; updated_at: string } | null;
   members: { id: string; name: string }[];
   valueCents: number | undefined;
 };
@@ -68,7 +68,7 @@ function LeadForm({ id, data }: { id: string; data: Loaded }) {
   const [form, setForm] = useState<Form>(() =>
     lead
       ? {
-          company: lead.company,
+          company: lead.company ?? "",
           contactName: lead.contact_name,
           contactEmail: lead.contact_email ?? "",
           stage: lead.stage,
@@ -114,7 +114,7 @@ function LeadForm({ id, data }: { id: string; data: Loaded }) {
   }
 
   function remove() {
-    Alert.alert("Delete lead?", `${lead?.company} will be removed for everyone in ${org.name}.`, [
+    Alert.alert("Delete lead?", `${lead?.company?.trim() || lead?.contact_name || "This lead"} will be removed for everyone in ${org.name}.`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -134,7 +134,7 @@ function LeadForm({ id, data }: { id: string; data: Loaded }) {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title: isNew ? "New lead" : lead?.company ?? "Lead" }} />
+      <Stack.Screen options={{ title: isNew ? "New lead" : lead?.company?.trim() || lead?.contact_name || "Lead" }} />
       {!editable && (
         <Notice tone="neutral">{perms.canEdit ? "This lead is assigned to someone else, so it's read-only for you." : "Your role has read-only access to leads."}</Notice>
       )}

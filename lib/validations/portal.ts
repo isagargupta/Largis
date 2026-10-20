@@ -11,12 +11,13 @@ import {
   orgRoles,
   orgStatuses,
   serviceLines,
-  stageOrder,
   staffRoles,
   ticketChannels,
   ticketPriorities,
   ticketStatuses,
 } from "@/lib/portal/meta";
+import { leadStages } from "@/lib/revenue/stages";
+import type { AssignmentMode, SuggestionKind } from "@/lib/supabase/types";
 
 export const emailField = z
   .string()
@@ -91,9 +92,35 @@ export const mfaRemoveSchema = z.object({ factorId: uuid });
 
 export const staffMfaSettingSchema = z.object({ requireStaffMfa: checkbox });
 
-export const leadSchema = z.object({
+const money = blank(
+  z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/[,\s$]/g, ""))
+    .refine((v) => v === "" || /^\d{1,12}(\.\d{1,2})?$/.test(v), "Enter an amount, e.g. 25000.")
+    .transform((v) => (v === "" ? null : Math.round(Number(v) * 100))),
+);
+
+function withLeadIdentity<T extends z.ZodObject>(schema: T) {
+  return schema.superRefine((input, ctx) => {
+    const lead = input as { company?: string | null; contactEmail?: string | null; phone?: string | null };
+    const company = lead.company?.trim() ?? "";
+    if (company.length === 1) {
+      ctx.addIssue({ code: "custom", path: ["company"], message: "Enter the company name." });
+    }
+    if (company.length < 2 && !lead.contactEmail && !lead.phone) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["company"],
+        message: "Enter a company, or a phone or email for this contact.",
+      });
+    }
+  });
+}
+
+const leadObject = z.object({
   organizationId: uuid,
-  company: z.string().trim().min(2, "Enter the company name.").max(160),
+  company: blank(z.string().trim().max(160, "Keep this under 160 characters.").transform((v) => v || null)),
   contactName: z.string().trim().min(2, "Enter a contact name.").max(120),
   contactEmail: blank(
     z
@@ -104,21 +131,72 @@ export const leadSchema = z.object({
       .refine((v) => v === "" || z.string().email().safeParse(v).success, "Enter a valid email address.")
       .transform((v) => v || null),
   ),
-  stage: z.enum(stageOrder, { message: "Choose a stage." }),
-  value: blank(
-    z
-      .string()
-      .trim()
-      .transform((v) => v.replace(/[,\s$]/g, ""))
-      .refine((v) => v === "" || /^\d{1,12}(\.\d{1,2})?$/.test(v), "Enter an amount, e.g. 25000.")
-      .transform((v) => (v === "" ? null : Math.round(Number(v) * 100))),
-  ),
+  phone: optionalText(40),
+  serviceAddress: optionalText(300),
+  jobType: optionalText(80),
+  lostReason: optionalText(500),
+  stage: z.enum(leadStages, { message: "Choose a stage." }),
+  value: money,
   ownerId: optionalUuid,
   source: optionalText(60),
   notes: optionalText(5000),
 });
 
-export const leadUpdateSchema = leadSchema.extend({ id: uuid });
+export const leadSchema = withLeadIdentity(leadObject);
+export const leadUpdateSchema = withLeadIdentity(leadObject.extend({ id: uuid }));
+
+const dueAt = blank(
+  z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v), "Enter a due date and time.")
+    .transform((v) => {
+      if (!v) return null;
+      const normalised = v.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(v) ? v : `${v.slice(0, 16)}:00Z`;
+      return new Date(normalised).toISOString();
+    }),
+);
+
+export const taskSchema = z.object({
+  organizationId: uuid,
+  leadId: uuid,
+  title: z.string().trim().min(1, "Enter the follow-up.").max(200),
+  dueAt,
+  ownerId: optionalUuid,
+});
+
+export const taskStatusSchema = z.object({
+  organizationId: uuid,
+  leadId: uuid,
+  id: uuid,
+  status: z.enum(["open", "done"]),
+});
+
+export const suggestionSchema = z.object({
+  organizationId: uuid,
+  leadId: uuid,
+  kind: z.enum(["summary", "reply", "next_action"] satisfies [SuggestionKind, ...SuggestionKind[]]),
+});
+
+export const suggestionDecisionSchema = z.object({
+  organizationId: uuid,
+  leadId: uuid,
+  id: uuid,
+});
+
+const assignmentModes = ["manual", "round_robin", "fixed"] as const satisfies readonly AssignmentMode[];
+
+export const assignmentSchema = z
+  .object({
+    organizationId: uuid,
+    mode: z.enum(assignmentModes, { message: "Choose how leads are assigned." }),
+    fixedOwnerId: optionalUuid,
+  })
+  .superRefine((input, ctx) => {
+    if (input.mode === "fixed" && !input.fixedOwnerId) {
+      ctx.addIssue({ code: "custom", path: ["fixedOwnerId"], message: "Choose the owner." });
+    }
+  });
 
 export const inviteMemberSchema = z.object({
   organizationId: uuid,
